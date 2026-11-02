@@ -1,15 +1,17 @@
-import { cookies } from 'next/headers';
-import { Playfair_Display, Inter, IBM_Plex_Sans_Arabic } from 'next/font/google';
+import { Jost, El_Messiri } from 'next/font/google';
 import Providers from '@/components/Providers';
 import { Header, Footer, CartDrawer } from '@/components/Chrome';
 import SmoothScroll from '@/components/SmoothScroll';
-import { getCategories, getProducts, getStoreSettings, getNavMenu } from '@/lib/api';
+import Analytics from '@/components/Analytics';
+import { getCategories, getProducts, getStoreSettings, getNavMenu, getStorePages } from '@/lib/api';
+import { siteSeo, getLang, SITE_URL } from '@/lib/seo';
 import './globals.css';
 
-const display = Playfair_Display({ subsets: ['latin'], weight: ['400', '500'], style: ['normal', 'italic'], variable: '--f-display' });
-const ui = Inter({ subsets: ['latin'], weight: ['300', '400', '500'], variable: '--f-ui' });
-/* Three families only: Playfair Display (display), Inter (UI), IBM Plex Sans Arabic (Arabic, display and UI) */
-const arUi = IBM_Plex_Sans_Arabic({ subsets: ['arabic'], weight: ['300', '400', '500'], variable: '--f-ar-ui' });
+/* Typography matches ahmedalmaghribi.ma: Jost for display + UI, El Messiri for Arabic */
+const display = Jost({ subsets: ['latin'], weight: ['200', '300', '400', '500'], style: ['normal'], variable: '--f-display' });
+const ui = Jost({ subsets: ['latin'], weight: ['200', '300', '400', '500'], variable: '--f-ui' });
+// Arabic face is only needed for /ar pages: do not preload it for English visitors
+const arUi = El_Messiri({ subsets: ['arabic'], weight: ['400', '500', '600', '700'], variable: '--f-ar-ui', preload: false });
 
 export const viewport = { themeColor: '#0b0a09' };
 
@@ -21,23 +23,46 @@ export async function generateMetadata() {
   const favicon = settings?.favicon
     ? (settings.favicon.startsWith('http') || settings.favicon.startsWith('/') ? settings.favicon : `/${settings.favicon}`)
     : '/favicon.ico';
-  const name = settings?.store_name || 'ALAYNAAS';
-  const tagline = settings?.store_tagline || 'For those who carry the crown';
+  const lang = await getLang();
+  const site = await siteSeo(lang);
 
   return {
+    metadataBase: new URL(SITE_URL),
     icons: { icon: favicon, shortcut: favicon, apple: favicon },
-    title: { default: `${name} | ${tagline}`, template: `%s | ${name}` },
-    description: `${name}: perfume, bakhoor, oud ma’attar and concentrated oils from the UAE.`,
+    title: { default: site.title, template: `%s | ${site.name}` },
+    description: site.description,
+    keywords: site.keywords || undefined,
+    applicationName: site.name,
+    verification: {
+      ...(settings?.tracking_google_verification ? { google: settings.tracking_google_verification } : {}),
+      ...(settings?.tracking_bing_verification ? { other: { 'msvalidate.01': settings.tracking_bing_verification } } : {}),
+    },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 } },
+    openGraph: {
+      title: site.title,
+      description: site.description,
+      siteName: site.name,
+      locale: site.locale,
+      type: 'website',
+      ...(site.image ? { images: [{ url: site.image }] } : {}),
+    },
+    twitter: {
+      card: site.image ? 'summary_large_image' : 'summary',
+      title: site.title,
+      description: site.description,
+      ...(site.image ? { images: [site.image] } : {}),
+    },
   };
 }
 
 export default async function RootLayout({ children }) {
-  const lang = (await cookies()).get('lang')?.value === 'ar' ? 'ar' : 'en';
-  const [cats, prods, storeSettings, navMenu] = await Promise.all([
+  const lang = await getLang();
+  const [cats, prods, storeSettings, navMenu, storePages] = await Promise.all([
     getCategories(),
     getProducts(),
     getStoreSettings(),
     getNavMenu(),
+    getStorePages(),
   ]);
 
   const resolveImg = (img) => {
@@ -48,7 +73,7 @@ export default async function RootLayout({ children }) {
 
   const rooms = cats.map((c) => ({
     slug: c.slug,
-    href: c.href || `/fragrances/${c.slug}`,
+    href: c.href || `/shop/${c.slug}`,
     tag: c.tag || { en: c.name, ar: c.name_ar || c.name },
     menu: c.menu || { en: c.name, ar: c.name_ar || c.name },
     image: resolveImg(c.image || c.icon_image),
@@ -68,10 +93,11 @@ export default async function RootLayout({ children }) {
     >
       <body>
         <Providers initialLang={lang} settings={storeSettings}>
+          <Analytics />
           <SmoothScroll />
           <Header rooms={rooms} navMenu={navMenu} />
           <main>{children}</main>
-          <Footer rooms={rooms} />
+          <Footer rooms={rooms} pages={storePages} />
           <CartDrawer />
         </Providers>
       </body>

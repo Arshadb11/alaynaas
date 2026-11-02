@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useApp } from './Providers';
 import { Headline } from './Reveal';
 import { Icon } from './Chrome';

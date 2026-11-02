@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from './Providers';
@@ -67,7 +67,6 @@ export default function HeroSlider({ slides, label = 'ALAYNAAS', interval = DEFA
   };
 
   if (!n) return null;
-  const nextSlide = n > 1 ? slides[(i + 1) % n] : null;
 
   return (
     <section
@@ -111,12 +110,6 @@ export default function HeroSlider({ slides, label = 'ALAYNAAS', interval = DEFA
         );
       })}
 
-      {nextSlide && (
-        <button type="button" className="hs-next" onClick={() => go(i + 1)} aria-label={`${t.hero?.next || 'Next'}: ${[nextSlide.l1, nextSlide.l2].filter(Boolean).join(' ')}`}>
-          <span className="hs-next-img"><Image src={nextSlide.img} alt="" fill sizes="64px" /></span>
-          <span><small>{t.hero?.next || 'Next'}</small><strong>{nextSlide.l1}</strong></span>
-        </button>
-      )}
 
       <div className="wrap hs-ctrl">
         <div className="hs-bars" role="tablist" aria-label={label}>
@@ -134,15 +127,12 @@ export default function HeroSlider({ slides, label = 'ALAYNAAS', interval = DEFA
             </button>
           ))}
         </div>
-        <span className="hs-count" aria-hidden="true"><b>{String(i + 1).padStart(2, '0')}</b> / {String(n).padStart(2, '0')}</span>
         <div className="hs-arrows">
           {n > 1 && (
             <button type="button" className={`hs-pause ${userPaused ? 'is-paused' : ''}`} onClick={() => setUserPaused((p) => !p)} aria-label={userPaused ? 'Play slideshow' : 'Pause slideshow'}>
               <i />
             </button>
           )}
-          <button type="button" className="hs-arrow prev" onClick={() => go(i - 1)} aria-label="Previous slide"><span /></button>
-          <button type="button" className="hs-arrow next" onClick={() => go(i + 1)} aria-label="Next slide"><span /></button>
         </div>
       </div>
       <p className="sr-only" aria-live={playing ? 'off' : 'polite'}>{`${i + 1} / ${n}`}</p>

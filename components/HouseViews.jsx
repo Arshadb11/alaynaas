@@ -1,7 +1,10 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
+import { productAlt } from '@/lib/alt';
 import Gallery, { galleryOf } from './Gallery';
-import BuyPanel from './BuyPanel';
+import { PdHero, PdRow, PdNotes, PdWear, PdRelated, PdStickyBar, useStickyBar } from './ProductPage';
+import { PdReviews } from './ProductReviews';
+import { ShopProductCard } from './ShopCatalogView';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useApp, useTone } from './Providers';
@@ -57,7 +60,7 @@ export function ProductCard({ p, i = 0 }) {
     <div className="pc" style={wstyle(p)}>
       <Reveal delay={i * 90}>
         <Link href={`/fragrance/${p.slug}`} className="pc-img" aria-label={p.name}>
-          {p.image && <Image src={p.image} alt="" fill sizes="(max-width:900px) 80vw, 24vw" />}
+          {p.image && <Image src={p.image} alt={productAlt(p, L)} fill sizes="(max-width:900px) 80vw, 24vw" />}
         </Link>
         <div className="pc-info">
           <p className="label">{L(p.mood || '')}</p>
@@ -108,7 +111,7 @@ export function Showcase({ products }) {
         <div className="sh-meta">
           <p className="label">{t.home.showSub}</p>
           <div className="cs-ctl">
-            <Link href="/fragrances/eau-de-parfum" className="tlink">{t.home.shopAll}<Arrow /></Link>
+            <Link href="/shop/eau-de-parfum" className="tlink">{t.home.shopAll}<Arrow /></Link>
             <div className="cs-arrows">
               <button className="cs-arrow prev" onClick={() => step(-1)} disabled={edge.start} aria-label="Previous"><span /></button>
               <button className="cs-arrow next" onClick={() => step(1)} disabled={edge.end} aria-label="Next"><span /></button>
@@ -120,7 +123,7 @@ export function Showcase({ products }) {
         {products.map((p, i) => (
           <article className="cs" key={p.id} style={wstyle(p)}>
             <Link href={`/fragrance/${p.slug}`} className="cs-img" aria-label={p.name}>
-              {p.image && <Image src={p.image} alt="" fill sizes="(max-width:900px) 78vw, 30vw" />}
+              {p.image && <Image src={p.image} alt={productAlt(p, L)} fill sizes="(max-width:900px) 78vw, 30vw" />}
               <span className="cs-no">{p.no || String(i + 1).padStart(2, '0')}</span>
               <span className="cs-mood">{L(p.mood || '')}</span>
             </Link>
@@ -335,7 +338,7 @@ function ProductRows({ list }) {
             <span className="n">{p.no || String(i + 1).padStart(2, '0')}</span>
             <span className="nm"><strong>{p.name}</strong><em>{L(p.line || '')}</em></span>
             <span className="meta label">{L(p.mood || '')}<br />{p.price != null ? `${p.variants ? `${t.home.from} ` : ''}${money(fromPrice(p))}${!p.variants && p.size ? ` · ${p.size}` : ''}` : ''}</span>
-            <span className="thumb">{p.image && <Image src={p.image} alt="" fill sizes="(max-width:900px) 40vw, 22vw" />}</span>
+            <span className="thumb">{p.image && <Image src={p.image} alt={productAlt(p, L)} fill sizes="(max-width:900px) 40vw, 22vw" />}</span>
           </Link>
         </Reveal>
       ))}
@@ -379,7 +382,7 @@ export function FragrancesView({ products, categories, query = '', family = null
               ? (ar ? `${products.length} \u0645\u0646\u062a\u062c` : `${products.length} product${products.length === 1 ? '' : 's'} found`)
               : (ar ? '\u0644\u0645 \u0646\u062c\u062f \u0623\u064a \u0645\u0646\u062a\u062c\u0627\u062a \u0645\u0637\u0627\u0628\u0642\u0629.' : 'Nothing matched your search. Try another word, or browse the collection.')}
           </p>
-          {!products.length && <Link href="/fragrances" className="btn">{ar ? '\u062a\u0635\u0641\u062d \u0627\u0644\u0645\u062c\u0645\u0648\u0639\u0629' : 'Browse all'}</Link>}
+          {!products.length && <Link href="/shop" className="btn">{ar ? '\u062a\u0635\u0641\u062d \u0627\u0644\u0645\u062c\u0645\u0648\u0639\u0629' : 'Browse all'}</Link>}
         </div>
         {products.length > 0 && (
           <div className="wrap sr-grid">
@@ -407,126 +410,220 @@ export function FragrancesView({ products, categories, query = '', family = null
 /* ───────── A room (category page) ───────── */
 const HERO = { 'eau-de-parfum': 'split', bakhoor: 'full', 'oud-maattar': 'split flip', 'concentrated-oils': 'center', sets: 'split flip', 'exclusive-creations': 'full' };
 
-export function CategoryView({ category: c, products, categories }) {
-  const dark = isDark(c.world.bg);
-  useTone(dark ? 'light' : 'dark');
-  const { t, L, money } = useApp();
+export function CategoryView({ category: c, products, categories = [] }) {
+  useTone('dark');
+  const { t, L, lang } = useApp();
   const [inten, setInten] = useState('all');
   const [avail, setAvail] = useState(false);
   const all = products.filter((p) => p.category === c.slug);
   const list = all.filter((p) => (inten === 'all' || intensityOf(p) === inten) && (!avail || p.availability !== 'soon'));
-  const lines = L(c.intro);
-  const layout = HERO[c.slug] || 'split';
-  const feat = all[0];
+  const strip = (s) => String(s || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  const lines = [].concat((c.intro && L(c.intro)) || []).map(strip).filter(Boolean);
+  const fullText = lines.join(' ');
+  const long = fullText.length > 260;
+  const leadText = long ? (fullText.slice(0, 240).replace(/\s+\S*$/, '') + '…') : fullText;
+  const headline = strip([].concat((c.headline && L(c.headline)) || L(c.name) || []).join(' '));
   const entry = journal.find((j) => j.slug === c.journal);
-  const head = (
-    <>
-      <Reveal><p className="label">{L(c.tag)} · {roomCount(t, all.length)}</p></Reveal>
-      <Headline as="h1" className="mega" lines={L(c.headline)} delay={150} />
-      <Reveal delay={500}><p className="serif-i">{lines[0]}</p></Reveal>
-    </>
-  );
+  const others = categories.filter((x) => x.slug !== c.slug);
   return (
-    <div className={`room room-${c.slug}`} style={wstyle(c)}>
-      <section className={`rh rh-${layout}`}>
-        {c.image && <div className="rh-img"><Image src={c.image} alt="" fill priority sizes={layout === 'full' ? '100vw' : '(max-width:900px) 100vw, 50vw'} /></div>}
-        {layout === 'full' && <div className="rh-shade" />}
-        <div className="rh-copy">{head}</div>
-      </section>
-
-      <section className="rp">
-        <div className="wrap"><Lines className="copy big" lines={lines.slice(1)} /></div>
-      </section>
-
-      {feat && (
-        <section className="rf">
-          <div className="wrap rf-grid">
-            <Link href={`/fragrance/${feat.slug}`} className="rf-img">{feat.image && <Image src={feat.image} alt="" fill sizes="(max-width:900px) 100vw, 50vw" />}</Link>
-            <div className="rf-copy">
-              <Reveal><p className="label">{t.rooms.featured}</p></Reveal>
-              <Headline className="mega-sm" lines={[feat.name]} />
-              <Reveal><p className="serif-i">{L(feat.line || '')}</p></Reveal>
-              <Reveal><Link href={`/fragrance/${feat.slug}`} className="tlink">{t.discover.meet}<Arrow /></Link></Reveal>
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="rc">
-        <div className="wrap">
-          <Reveal><p className="label">{t.rooms.collection}</p></Reveal>
-          {all.length > 2 && (
-            <div className="chips" role="group" aria-label={t.rooms.intensity}>
-              {['all', 'soft', 'present', 'bold'].map((k) => <button key={k} className={inten === k ? 'on' : ''} onClick={() => setInten(k)}>{k === 'all' ? t.rooms.all : t.rooms[k]}</button>)}
-              <button className={avail ? 'on' : ''} onClick={() => setAvail(!avail)}>{t.rooms.availableOnly}</button>
-            </div>
+    <div className="cat">
+      <section className="cat-head">
+        <div className="cat-wrap">
+          <p className="cat-kicker">{L(c.tag)} · {roomCount(t, all.length)}</p>
+          <h1 className="cat-title">{headline}</h1>
+          {leadText && <p className="cat-lead">{leadText}</p>}
+          {long && (
+            <details className="cat-read">
+              <summary>{lang === 'ar' ? 'اقرأ المزيد' : 'Read more'}</summary>
+              <p>{fullText}</p>
+            </details>
           )}
-          {all.length === 0 ? <Reveal><p className="soon">{t.rooms.soon}</p></Reveal>
-            : list.length === 0 ? <p className="soon">{t.rooms.none}</p>
-            : <ProductRows list={list} />}
         </div>
       </section>
 
-      {entry && (
-        <section className="rj">
-          <div className="wrap">
-            <Reveal><p className="label">{t.rooms.related}</p></Reveal>
-            <Reveal><Link href={`/journal/${entry.slug}`} className="rj-link"><strong>{entry.title}</strong><Arrow /></Link></Reveal>
+      <section className="cat-bar">
+        <div className="cat-wrap cat-bar-in">
+          <span className="cat-count">{roomCount(t, list.length)}</span>
+          {all.length > 2 && (
+            <div className="cat-chips" role="group" aria-label={t.rooms.intensity}>
+              {['all', 'soft', 'present', 'bold'].map((k) => <button key={k} type="button" className={inten === k ? 'on' : ''} onClick={() => setInten(k)}>{k === 'all' ? t.rooms.all : t.rooms[k]}</button>)}
+              <button type="button" className={avail ? 'on' : ''} onClick={() => setAvail(!avail)}>{t.rooms.availableOnly}</button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="cat-grid-sec">
+        <div className="cat-wrap">
+          {all.length === 0 ? <p className="cat-empty">{t.rooms.soon}</p>
+            : list.length === 0 ? <p className="cat-empty">{t.rooms.none}</p>
+            : <div className="sh-grid">{list.map((p) => <ShopProductCard key={p.id || p.slug} product={p} />)}</div>}
+        </div>
+      </section>
+
+      {(entry || others.length > 0) && (
+        <section className="cat-more">
+          <div className="cat-wrap">
+            {entry && (
+              <Link href={`/journal/${entry.slug}`} className="cat-journal">
+                <span className="cat-kicker">{t.rooms.related}</span>
+                <strong>{entry.title}</strong>
+                <Icon n="arrow" size={18} />
+              </Link>
+            )}
+            {others.length > 0 && (
+              <div className="cat-others">
+                {others.map((x) => <Link key={x.slug} href={x.href}>{L(x.menu || x.name)}</Link>)}
+              </div>
+            )}
           </div>
         </section>
       )}
-
-      <Relations categories={categories} exclude={c.slug} />
     </div>
   );
 }
 
-/* ───────── Exclusive Creations landing ───────── */
-export function NicheView({ category: c, products, categories }) {
-  useTone('light');
-  const { t, L } = useApp();
-  const list = products.filter((p) => p.category === c.slug);
-  const lines = L(c.intro);
+/* ───────── Exclusive landing: quiet, minimal ───────── */
+const XV = {
+  en: {
+    kicker: 'Limited editions',
+    title: 'Exclusive',
+    lead: 'Rare compositions, made in small numbers.',
+    discover: 'Discover',
+    introA: 'Not everything belongs to the collection.',
+    introB: 'Some fragrances are made in small numbers, for the few who find them.',
+    limited: 'Limited edition', pieces: (n) => `Edition of ${n}`,
+    vat: 'Incl. VAT', reserve: 'Reserve', soldOut: 'Sold out',
+    atelierKicker: 'The atelier', atelierH: 'Made slowly.',
+    atelierP: 'Composed patiently, matured in small batches and released only when it is ready.',
+    conKicker: 'By appointment', conH: 'Private appointments',
+    conP: 'For personal advice, or to hear first of the next edition, speak with us.',
+    wa: 'WhatsApp', contact: 'Contact',
+    empty: 'The first pieces are still being finished. They will be shown here first.',
+  },
+  ar: {
+    kicker: 'إصدارات محدودة',
+    title: 'حصري',
+    lead: 'تركيبات نادرة تُصنع بأعداد قليلة.',
+    discover: 'اكتشف',
+    introA: 'ليس كل شيء ينتمي إلى المجموعة.',
+    introB: 'بعض العطور تُصنع بأعداد قليلة، لقلّة يعثرون عليها.',
+    limited: 'إصدار محدود', pieces: (n) => `إصدار من ${n} قطعة`,
+    vat: 'شامل الضريبة', reserve: 'احجز', soldOut: 'نفدت الكمية',
+    atelierKicker: 'المشغل', atelierH: 'يُصنع بتأنٍّ.',
+    atelierP: 'يُركَّب بصبر، ويُعتَّق على دفعات صغيرة، ولا يُطرح إلا حين يكتمل.',
+    conKicker: 'بموعد مسبق', conH: 'مواعيد خاصة',
+    conP: 'للاستشارة الشخصية، أو لتكون أول من يعلم بالإصدار القادم، تواصل معنا.',
+    wa: 'واتساب', contact: 'تواصل معنا',
+    empty: 'لا تزال القطع الأولى قيد الإنجاز، وستُعرض هنا أولاً.',
+  },
+};
+
+function XvPiece({ p, i, x, isAr }) {
+  const { L, money, addItem } = useApp();
+  const img = p.image || p.primary_image;
+  const alt2 = p.secondary_image || (Array.isArray(p.gallery) ? p.gallery[1] : null);
+  const price = p.variants?.length ? Math.min(...p.variants.map((v) => Number(v.price))) : p.price;
+  const edition = Number(p.edition_size) || 0;
+  const stock = p.stock_quantity == null ? null : Number(p.stock_quantity);
+  const limited = Number(p.is_limited_edition) === 1 || edition > 0;
+  const soldOut = p.in_stock === false || stock === 0;
+  const label = edition > 0 ? x.pieces(edition) : limited ? x.limited : null;
+  const size = p.size_label || p.size;
+  const name = isAr && p.name_ar ? p.name_ar : p.name;
+  const href = `/fragrance/${p.slug}`;
   return (
-    <div className="niche" style={wstyle(c)}>
-      <section className="nz-open">
-        <div className="wrap">
-          <Reveal><p className="label">ALAYNAAS</p></Reveal>
-          <Headline as="h1" className="mega" lines={L(c.headline)} delay={300} />
+    <Reveal as="article" className={`xv-piece ${i % 2 ? 'flip' : ''}`}>
+      <Link href={href} className="xv-stage" aria-label={name}>
+        {img && <Image src={img} alt={productAlt(p, L)} fill sizes="(max-width:1000px) 100vw, 50vw" className="xv-img a" />}
+        {alt2 && <Image src={alt2} alt="" fill sizes="(max-width:1000px) 100vw, 50vw" className="xv-img b" />}
+      </Link>
+      <div className="xv-info">
+        {label && <p className="xv-kicker">{label}</p>}
+        <h2 className="xv-name"><Link href={href}>{name}</Link></h2>
+        {p.line && <p className="xv-line">{L(p.line)}</p>}
+        <p className="xv-meta">
+          {size && <span>{size}</span>}
+          {price != null && <span><strong>{money(price)}</strong> <small>{x.vat}</small></span>}
+        </p>
+        <div className="xv-actions">
+          <button type="button" className="xv-btn" disabled={soldOut} onClick={() => addItem(p, 1, p.variants?.[0])}>{soldOut ? x.soldOut : x.reserve}</button>
+          <Link href={href} className="xv-link">{x.discover}</Link>
         </div>
-        <span className="nz-scroll label">{t.rooms.niche.scroll}</span>
+      </div>
+    </Reveal>
+  );
+}
+
+export function NicheView({ category: c, products, categories }) {
+  useTone('dark');
+  const { L, lang, settings } = useApp();
+  const isAr = lang === 'ar';
+  const x = XV[isAr ? 'ar' : 'en'];
+  const list = products.filter((p) => p.category === c.slug);
+  const others = (categories || []).filter((o) => o.slug !== c.slug);
+  const wa = String(settings?.whatsapp_number || '').replace(/\D/g, '');
+  const waHref = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(isAr ? 'مرحباً، أودّ ترتيب موعد خاص.' : 'Hello, I would like to arrange a private appointment.')}` : null;
+  return (
+    <div className="xv">
+      <section className="xv-hero">
+        <Image src="/images/exclusive/vault.jpg" alt="" fill priority sizes="100vw" className="xv-hero-img" />
+        <span className="xv-hero-shade" aria-hidden="true" />
+        <div className="xv-wrap xv-hero-in">
+          <p className="xv-kicker">{x.kicker}</p>
+          <h1 className="xv-title">{x.title}</h1>
+          <p className="xv-hero-lead">{x.lead}</p>
+          <a href="#xv-pieces" className="xv-link">{x.discover}</a>
+        </div>
       </section>
 
-      <section className="nz-text">
-        <div className="wrap">
-          <Lines className="copy big" lines={[lines[0], '', ...lines[1].split('. ').map((s, i, a) => (i < a.length - 1 ? `${s}.` : s)), '']} />
-          <Reveal><p className="nz-line">{lines[2]}</p></Reveal>
-          <Reveal><p className="label nz-tags">{t.rooms.niche.label}</p></Reveal>
+      <section className="xv-intro">
+        <Reveal className="xv-wrap xv-intro-in">
+          <p>{x.introA}</p>
+          <p className="soft">{x.introB}</p>
+        </Reveal>
+      </section>
+
+      <section className="xv-pieces" id="xv-pieces">
+        <div className="xv-wrap">
+          {list.length === 0
+            ? <p className="xv-empty">{x.empty}</p>
+            : list.map((p, i) => <XvPiece key={p.id || p.slug} p={p} i={i} x={x} isAr={isAr} />)}
         </div>
       </section>
 
-      <section className="nz-list">
-        <div className="wrap">
-          {list.length === 0 ? (
-            <Reveal><p className="serif-i nz-empty">{t.rooms.niche.empty}</p></Reveal>
-          ) : list.map((p, i) => (
-            <Reveal key={p.id} className={`nc ${i % 2 ? 'flip' : ''}`}>
-              <Link href={`/fragrance/${p.slug}`} className="nc-link">
-                {p.image && <span className="nc-img"><Image src={p.image} alt="" fill sizes="(max-width:900px) 100vw, 50vw" /></span>}
-                <span className="nc-copy">
-                  <span className="label">{t.rooms.niche.creationNo} {String(i + 1).padStart(2, '0')}</span>
-                  <strong className="nc-name">{p.name}</strong>
-                  <em>{L(p.line || '')}</em>
-                  {p.availability === 'limited' && <span className="label">{t.rooms.niche.limited}</span>}
-                  <span className="tlink">{t.rooms.niche.discover}<Arrow /></span>
-                </span>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
+      <section className="xv-atelier">
+        <figure className="xv-atelier-fig">
+          <Image src="/images/exclusive/atelier.jpg" alt={isAr ? 'يدان تُنهيان زجاجة عطر في المشغل' : 'Hands finishing a perfume bottle in the atelier'} fill sizes="(max-width:1000px) 100vw, 50vw" />
+        </figure>
+        <Reveal className="xv-atelier-copy">
+          <p className="xv-kicker">{x.atelierKicker}</p>
+          <h2 className="xv-h2">{x.atelierH}</h2>
+          <p className="xv-p">{x.atelierP}</p>
+        </Reveal>
       </section>
 
-      <Relations categories={categories} exclude={c.slug} />
+      <section className="xv-concierge">
+        <Reveal className="xv-wrap xv-concierge-in">
+          <p className="xv-kicker">{x.conKicker}</p>
+          <h2 className="xv-h2">{x.conH}</h2>
+          <p className="xv-p">{x.conP}</p>
+          <div className="xv-links">
+            {waHref && <a href={waHref} className="xv-link" target="_blank" rel="noopener noreferrer">{x.wa}</a>}
+            <Link href="/contact" className="xv-link">{x.contact}</Link>
+          </div>
+        </Reveal>
+      </section>
+
+      {others.length > 0 && (
+        <section className="cat-more xv-others">
+          <div className="cat-wrap">
+            <div className="cat-others">
+              {others.map((o) => <Link key={o.slug} href={o.href}>{L(o.menu || o.name)}</Link>)}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -551,80 +648,57 @@ export function Continue({ product, products }) {
 
 /* ───────── Product page for Bakhoor / Oud Ma'attar / Oils / Niche (adapts to the type) ───────── */
 export function RoomProductView({ product, products }) {
-  const { t, L, money, addItem } = useApp();
+  const { t, L } = useApp();
   const c = catBySlug(product.category) || {
     slug: product.category || 'perfumes',
-    world: product.world || { bg: '#14100c', fg: '#eadfcf', accent: '#b9763a' },
     tag: { en: product.category || 'Fragrance', ar: product.category || 'عطر' },
     menu: { en: product.category || 'Fragrance', ar: product.category || 'عطر' },
     detailKeys: ['burn', 'atmosphere', 'character', 'usage'],
   };
-  const w = product.world || c.world || { bg: '#14100c', fg: '#eadfcf', accent: '#b9763a' };
   const niche = c?.slug === NICHE;
-  useTone(isDark(w.bg) ? 'light' : 'dark');
+  useTone('dark');
   const [qty, setQty] = useState(1);
   const [vi, setVi] = useState(0);
   const variant = product.variants?.[vi];
   const price = variant ? variant.price : product.price;
   const buyable = price != null && product.availability !== 'soon';
+  const { showBar, heroRef, ctaRef } = useStickyBar(product);
+  const kicker = product.fragrance_family || `${niche ? t.rooms.niche.creationNo : L(c.tag)}${product.mood ? ` — ${L(product.mood)}` : ''}`;
   return (
-    <div className="fpage" style={{ '--bg': w.bg, '--fg': w.fg, '--ac': w.accent }}>
-      <section className="fhero">
-        <div className="fhero-gal"><Gallery images={galleryOf(product)} alt={product.name} /></div>
-        <BuyPanel product={product} label={`${niche ? t.rooms.niche.creationNo : L(c.tag)}${product.mood ? ` — ${L(product.mood)}` : ''}`} vi={vi} setVi={setVi} qty={qty} setQty={setQty} price={price} variant={variant} buyable={buyable} />
-      </section>
+    <div className="pd">
+      <PdHero product={product} kicker={kicker} vi={vi} setVi={setVi} qty={qty} setQty={setQty} price={price} variant={variant} buyable={buyable} buyRef={ctaRef} heroRef={heroRef} />
 
       {niche && (
-        <section className="fsec center-text">
-          <Reveal><p className="impression">{t.rooms.niche.pairA}</p></Reveal>
-          <Reveal delay={200}><p className="impression strong">{t.rooms.niche.pairB}</p></Reveal>
+        <section className="pd-sec pd-impr">
+          <div className="pd-wrap">
+            <p className="pd-lead">{t.rooms.niche.pairA}</p>
+            <p className="pd-lead strong">{t.rooms.niche.pairB}</p>
+          </div>
         </section>
       )}
       {product.impression && (
-        <section className="fsec center-text">
-          <Reveal><p className="label">{t.product.impression}</p></Reveal>
-          <Reveal delay={100}><p className="impression">{L(product.impression)}</p></Reveal>
+        <section className="pd-sec pd-impr">
+          <div className="pd-wrap">
+            <p className="pd-kicker">{t.product.impression}</p>
+            <p className="pd-lead">{L(product.impression)}</p>
+          </div>
         </section>
       )}
-      {product.story && (
-        <section className="fsec"><div className="wrap split-2">
-          <Reveal><p className="label">{t.product.story}</p></Reveal>
-          <div className="copy">{L(product.story).map((p, i) => <Reveal key={i} delay={i * 100}><p>{p}</p></Reveal>)}</div>
-        </div></section>
-      )}
+      {product.story && <PdRow label={t.product.story}>{L(product.story).map((p, i) => <p key={i}>{p}</p>)}</PdRow>}
       {c.detailKeys.filter((k) => product.details?.[k]).map((k) => {
         const v = L(product.details[k]);
-        return (
-          <section className="fsec" key={k}><div className="wrap split-2">
-            <Reveal><p className="label">{t.rooms.detail[k]}</p></Reveal>
-            <div className="copy">{(Array.isArray(v) ? v : [v]).map((p, i) => <Reveal key={i} delay={i * 100}><p>{p}</p></Reveal>)}</div>
-          </div></section>
-        );
+        return <PdRow key={k} label={t.rooms.detail[k]}>{(Array.isArray(v) ? v : [v]).map((p, i) => <p key={i}>{p}</p>)}</PdRow>;
       })}
-      {product.notes && (
-        <section className="fsec"><div className="wrap split-2">
-          <Reveal><p className="label">{t.product.notes}</p></Reveal>
-          <div className="notes3">
-            {['top', 'heart', 'base'].filter((k) => product.notes[k]).map((k, i) => (
-              <Reveal key={k} delay={i * 100}><span className="label">{t.product[k]}</span><ul>{product.notes[k].map((n) => <li key={n}>{n}</li>)}</ul></Reveal>
-            ))}
-          </div>
-        </div></section>
-      )}
-      {product.wear?.length > 0 && (
-        <section className="fsec"><div className="wrap split-2">
-          <Reveal><p className="label">{t.product.wear}</p></Reveal>
-          <ul className="wear">{product.wear.map((x, i) => <Reveal as="li" key={i} delay={i * 80}>{L(x)}</Reveal>)}</ul>
-        </div></section>
-      )}
+      {product.notes && <PdNotes notes={product.notes} items={product.note_items} />}
+      <PdWear wear={product.wear} />
       {(niche || product.availability === 'limited') && (
-        <section className="fsec"><div className="wrap split-2">
-          <Reveal><p className="label">{t.rooms.detail.availability}</p></Reveal>
-          <div className="copy"><Reveal><p>{product.availability === 'limited' ? t.rooms.availability.limited : t.rooms.availability[product.availability || 'available']}</p></Reveal></div>
-        </div></section>
+        <PdRow label={t.rooms.detail.availability}>
+          <p>{product.availability === 'limited' ? t.rooms.availability.limited : t.rooms.availability[product.availability || 'available']}</p>
+        </PdRow>
       )}
-
-      <Continue product={product} products={products} />
+      <PdReviews product={product} />
+      <PdRelated product={product} products={products} />
+      {buyable && <PdStickyBar show={showBar} product={product} price={price} qty={qty} variant={variant} />}
     </div>
   );
 }

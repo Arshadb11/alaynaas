@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Fragment, useEffect, useRef, useState } from 'react';
@@ -16,6 +16,15 @@ export function Icon({ n, size = 20 }) {
     minus: <path d="M5 12h14" />,
     check: <path d="m5 12.5 4.5 4.5L19 7" />,
     lock: <><rect x="5" y="11" width="14" height="10" rx="1" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
+    truck: <><path d="M2.5 6.5h11v9h-11z" /><path d="M13.5 9.5h4l3 3v3h-7" /><circle cx="7" cy="17" r="1.8" /><circle cx="17" cy="17" r="1.8" /></>,
+    cash: <><rect x="3" y="6.5" width="18" height="11" rx="1" /><circle cx="12" cy="12" r="2.6" /><path d="M6.5 9.5v.01M17.5 14.5v.01" /></>,
+    returns: <><path d="M4 12a8 8 0 1 0 2.6-5.9" /><path d="M4 4.5v4h4" /></>,
+    spark: <path d="M12 3l1.9 5.4L19.5 10l-5.6 1.7L12 17l-1.9-5.3L4.5 10l5.6-1.6L12 3Z" />,
+    mail: <><rect x="3" y="5.5" width="18" height="13" rx="1" /><path d="m3.5 7 8.5 6.5L20.5 7" /></>,
+    phone: <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A15 15 0 0 1 4 5a1 1 0 0 1 1-1Z" />,
+    chat: <path d="M4 5h16v11H9l-5 4V5Z" />,
+    pin: <><path d="M12 21s6.5-5.6 6.5-11a6.5 6.5 0 0 0-13 0c0 5.4 6.5 11 6.5 11Z" /><circle cx="12" cy="10" r="2.3" /></>,
+    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>,
     chev: <path d="m6 9 6 6 6-6" />,
     globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3Z" /></>,
     search: <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></>,
@@ -26,7 +35,7 @@ export function Icon({ n, size = 20 }) {
 
 export function Header({ rooms = [], navMenu = [] }) {
   const { t, L, lang, setLang, totals, setDrawer, menu, setMenu, tone, settings, money } = useApp();
-  const pathname = usePathname();
+  const pathname = (usePathname() || '').replace(/^\/ar(?=\/|$)/, '') || '/';
   const [scrolled, setScrolled] = useState(false);
   const [mega, setMega] = useState(false);
   const [searchQ, setSearchQ] = useState('');
@@ -40,7 +49,7 @@ export function Header({ rooms = [], navMenu = [] }) {
     if (!q) return;
     setMenu(false);
     setSearchOpen(false);
-    router.push(`/fragrances?q=${encodeURIComponent(q.slice(0, 100))}`);
+    router.push(`${lang === 'ar' ? '/ar' : ''}/shop?q=${encodeURIComponent(q.slice(0, 100))}`);
   };
   // Announcement bar can be dismissed for the rest of the browser session
   useEffect(() => {
@@ -58,7 +67,7 @@ export function Header({ rooms = [], navMenu = [] }) {
   const close = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setMega(false), 140); };
 
   useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 60);
+    const on = () => setScrolled((s) => (s ? window.scrollY > 24 : window.scrollY > 90));
     on();
     window.addEventListener('scroll', on, { passive: true });
     return () => window.removeEventListener('scroll', on);
@@ -92,7 +101,7 @@ export function Header({ rooms = [], navMenu = [] }) {
   const countLabel = (n) => (n === 0 ? t.rooms.soonShort : n === 1 ? t.rooms.one : t.rooms.many.replace('{n}', n));
   const main = rooms.filter((r) => r.slug !== 'exclusive-creations');
   const niche = rooms.find((r) => r.slug === 'exclusive-creations');
-  const links = [['/story', t.nav.world], ['/fragrances', t.nav.fragrances, true], ['/exclusive-creations', t.nav.niche], ['/journal', t.nav.journal], ['/discover', t.nav.discover]];
+  const links = [['/story', t.nav.world], ['/shop', t.nav.fragrances, true], ['/exclusive-creations', t.nav.niche], ['/journal', t.nav.journal], ['/discover', t.nav.discover]];
 
   // ── Dynamic menu (Admin → Catalog → Menu). Falls back to the built-in links when empty. ──
   const dyn = Array.isArray(navMenu) && navMenu.length > 0;
@@ -297,7 +306,7 @@ export function Header({ rooms = [], navMenu = [] }) {
                   <div className="mega-intro">
                     <p className="label">{t.nav.fragrances}</p>
                     <strong>{t.home.shopRooms}</strong>
-                    <Link href="/fragrances" className="tlink" tabIndex={mega ? 0 : -1}>{t.home.shopAll}</Link>
+                    <Link href="/shop" className="tlink" tabIndex={mega ? 0 : -1}>{t.home.shopAll}</Link>
                     <Link href="/discover" className="tlink" tabIndex={mega ? 0 : -1}>{t.finder.kicker}</Link>
                   </div>
                   <div className="mega-cards">
@@ -393,7 +402,7 @@ export function Header({ rooms = [], navMenu = [] }) {
 
 export function CartDrawer() {
   const { t, L, money, items, totals, setQty, removeItem, drawer, setDrawer } = useApp();
-  const pathname = usePathname();
+  const pathname = (usePathname() || '').replace(/^\/ar(?=\/|$)/, '') || '/';
   useEffect(() => setDrawer(false), [pathname, setDrawer]);
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && setDrawer(false);
@@ -414,7 +423,7 @@ export function CartDrawer() {
         )}
         <div className="drawer-body" data-lenis-prevent>
           {items.length === 0 ? (
-            <div className="empty-state"><h3>{t.cart.empty}</h3><p className="muted">{t.cart.emptySub}</p><Link href="/fragrances" className="btn" onClick={() => setDrawer(false)}>{t.cart.continue}</Link></div>
+            <div className="empty-state"><h3>{t.cart.empty}</h3><p className="muted">{t.cart.emptySub}</p><Link href="/shop" className="btn" onClick={() => setDrawer(false)}>{t.cart.continue}</Link></div>
           ) : items.map((i) => (
             <div className="mini" key={i.id}>
               <Link href={`/fragrance/${i.slug}`} className="mini-img"><Image src={i.image} alt="" fill sizes="80px" /></Link>
@@ -444,9 +453,10 @@ export function CartDrawer() {
 }
 
 /* Footer: service highlights, link columns, newsletter, legal bar */
+const DEFAULT_FOOT_PAGES = [{ slug: 'shipping', k: 'shipping' }, { slug: 'returns', k: 'refund' }, { slug: 'privacy', k: 'privacy' }, { slug: 'terms', k: 'terms' }];
 const FOOT_TXT = {
   en: {
-    ship: 'Swift & Complimentary Shipping', shipSub: 'Free delivery on orders over {amt}',
+    ship: 'Delivered across the UAE', shipSub: 'Within {days} working days',
     cod: 'Convenient Cash on Delivery', codSub: 'Simple, safe, and flexible payment at delivery',
     support: 'Quick Online Support', supportSub: 'Call us or WhatsApp for assistance',
     gifts: 'Complimentary Gifts & Samples', giftsSub: 'Discover more with complimentary samples',
@@ -458,7 +468,7 @@ const FOOT_TXT = {
     join: 'Subscribe',
   },
   ar: {
-    ship: 'شحن سريع ومجاني', shipSub: 'توصيل مجاني للطلبات فوق {amt}',
+    ship: 'توصيل إلى جميع أنحاء الإمارات', shipSub: 'خلال {days} أيام عمل',
     cod: 'الدفع عند الاستلام', codSub: 'دفع بسيط وآمن ومرن عند التسليم',
     support: 'دعم سريع عبر الإنترنت', supportSub: 'اتصل بنا أو راسلنا عبر واتساب',
     gifts: 'هدايا وعينات مجانية', giftsSub: 'اكتشف المزيد مع العينات المجانية',
@@ -478,11 +488,34 @@ const FT_ICONS = {
   gifts: <><rect x="8" y="9" width="8" height="12" rx="1.2" /><path d="M10 9V6h4v3M12 3v3" /><path d="M16.5 4.5l1.2-1.2M18 6.5h1.6" /></>,
 };
 
-export function Footer({ rooms = [] }) {
+const SOCIAL_ICONS = {
+  instagram: ['Instagram', <><rect x="4" y="4" width="16" height="16" rx="4.5" /><circle cx="12" cy="12" r="3.6" /><path d="M16.8 7.2v.01" /></>],
+  facebook: ['Facebook', <path d="M14 8.5h2.5V5H14a3.5 3.5 0 0 0-3.5 3.5V11H8v3.5h2.5V21H14v-6.5h2.4l.6-3.5H14V8.5Z" />],
+  tiktok: ['TikTok', <path d="M14 4v10.2a3.4 3.4 0 1 1-3.4-3.4M14 4c.3 2.3 1.8 3.8 4.2 4" />],
+  youtube: ['YouTube', <><rect x="3" y="6" width="18" height="12" rx="3.5" /><path d="m10.5 9.5 4 2.5-4 2.5v-5Z" /></>],
+  x: ['X', <path d="M5 5l14 14M19 5 5 19" />],
+  snapchat: ['Snapchat', <path d="M12 3.5c2.6 0 4 1.9 4 4.2V10c.5.4 1.3.5 2.2.5-.3.9-1 1.2-1.9 1.4.4 1 1.2 1.7 2.2 2-.9.7-2 .8-3 .9-.3.6-.9 1.2-1.7 1.2-.6 0-1-.4-1.8-.4s-1.2.4-1.8.4c-.8 0-1.4-.6-1.7-1.2-1-.1-2.1-.2-3-.9 1-.3 1.8-1 2.2-2-.9-.2-1.6-.5-1.9-1.4.9 0 1.7-.1 2.2-.5V7.7c0-2.3 1.4-4.2 4-4.2Z" />],
+};
+const PAY_LABELS = {
+  cod: { en: 'Cash on delivery', ar: 'الدفع عند الاستلام' },
+  visa: { en: 'VISA', ar: 'VISA' },
+  mastercard: { en: 'Mastercard', ar: 'Mastercard' },
+  amex: { en: 'AMEX', ar: 'AMEX' },
+  applepay: { en: 'Apple Pay', ar: 'Apple Pay' },
+  tabby: { en: 'tabby', ar: 'tabby' },
+  tamara: { en: 'tamara', ar: 'tamara' },
+};
+
+export function Footer({ rooms = [], pages = [] }) {
   const { t, L, lang, money, settings } = useApp();
+  const footPages = pages.filter((p) => p.show_in_footer);
   const x = FOOT_TXT[lang === 'ar' ? 'ar' : 'en'];
-  const ig = process.env.NEXT_PUBLIC_INSTAGRAM_URL || '#';
+  const ig = settings?.social_instagram || process.env.NEXT_PUBLIC_INSTAGRAM_URL || '#';
   const brandName = settings?.store_name || t.brand || 'ALAYNAAS';
+  const ar = lang === 'ar';
+  const socials = Object.keys(SOCIAL_ICONS).filter((k) => /^https?:\/\//i.test(String(settings?.[`social_${k}`] || '')));
+  const payments = String(settings?.footer_payment_methods || '').split(',').map((p) => p.trim()).filter((p) => PAY_LABELS[p]);
+  const trn = String(settings?.tax_trn || '').trim();
 
   const [email, setEmail] = useState('');
   const [agree, setAgree] = useState(false);
@@ -502,7 +535,7 @@ export function Footer({ rooms = [] }) {
   const supportHref = waDigits ? `https://wa.me/${waDigits}` : '/contact';
 
   const features = [
-    { k: 'ship', title: x.ship, sub: x.shipSub.replace('{amt}', freeOver ? money(freeOver) : '—'), href: '/policies/shipping' },
+    { k: 'ship', title: x.ship, sub: x.shipSub.replace('{days}', settings?.delivery_days || '2 - 5'), href: '/policies/shipping' },
     { k: 'cod', title: x.cod, sub: x.codSub, href: '/policies/shipping' },
     { k: 'support', title: x.support, sub: x.supportSub, href: supportHref, ext: !!waDigits },
     { k: 'gifts', title: x.gifts, sub: x.giftsSub, href: '/discover' },
@@ -546,16 +579,15 @@ export function Footer({ rooms = [] }) {
             <h2>{x.cats}</h2>
             <ul>
               {rooms.map((r) => <li key={r.slug}><Link href={r.href}>{L(r.tag)}</Link></li>)}
-              <li><Link href="/fragrances">{x.shopAll}</Link></li>
+              <li><Link href="/shop">{x.shopAll}</Link></li>
             </ul>
           </nav>
           <nav aria-label={x.info}>
             <h2>{x.info}</h2>
             <ul>
-              <li><Link href="/policies/shipping">{x.shipping}</Link></li>
-              <li><Link href="/policies/returns">{x.refund}</Link></li>
-              <li><Link href="/policies/privacy">{x.privacy}</Link></li>
-              <li><Link href="/policies/terms">{x.terms}</Link></li>
+              {(footPages.length ? footPages : DEFAULT_FOOT_PAGES.map((d) => ({ slug: d.slug, title_en: x[d.k], title_ar: x[d.k] }))).map((p) => (
+                <li key={p.slug}><Link href={`/policies/${p.slug}`}>{(lang === 'ar' && p.title_ar) || p.title_en}</Link></li>
+              ))}
               <li><Link href="/contact">{x.contact}</Link></li>
             </ul>
           </nav>
@@ -565,7 +597,7 @@ export function Footer({ rooms = [] }) {
               <li><Link href="/story">{x.creations.replace('{brand}', brandName)}</Link></li>
               <li><Link href="/journal">{x.journal}</Link></li>
               <li><Link href="/discover">{x.discover}</Link></li>
-              <li><Link href="/contact">{x.corporate}</Link></li>
+              <li><Link href="/corporate-orders">{x.corporate}</Link></li>
               <li><Link href="/account">{x.track}</Link></li>
             </ul>
           </nav>
@@ -586,11 +618,33 @@ export function Footer({ rooms = [] }) {
           </div>
         </div>
 
+        {(socials.length > 0 || payments.length > 0 || trn) && (
+          <div className="ft-trust">
+            {socials.length > 0 && (
+              <ul className="ft-social" aria-label={ar ? 'تابعنا' : 'Follow us'}>
+                {socials.map((k) => (
+                  <li key={k}>
+                    <a href={settings[`social_${k}`]} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_ICONS[k][0]} title={SOCIAL_ICONS[k][0]}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{SOCIAL_ICONS[k][1]}</svg>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {payments.length > 0 && (
+              <ul className="ft-pay" aria-label={ar ? 'طرق الدفع' : 'Payment methods'}>
+                {payments.map((p) => <li key={p}>{PAY_LABELS[p][ar ? 'ar' : 'en']}</li>)}
+              </ul>
+            )}
+            {trn && <p className="ft-trn">{ar ? 'الرقم الضريبي' : 'TRN'} <span dir="ltr">{trn}</span></p>}
+          </div>
+        )}
+
         <div className="ft-bottom">
           {footerLogoSrc && <img src={footerLogoSrc} alt={brandName} className="ft-logo" style={{ height: `${Number(settings?.footer_logo_height) || 40}px` }} />}
           <span>© {new Date().getFullYear()} {brandName}. {t.footer.rights}</span>
           <span className="ft-bottom-links">
-            <a href={ig} target="_blank" rel="noreferrer">{t.footer.instagram}</a>
+            {socials.length === 0 && ig !== '#' && <a href={ig} target="_blank" rel="noreferrer">{t.footer.instagram}</a>}
             <span>{t.footer.country}</span>
           </span>
         </div>

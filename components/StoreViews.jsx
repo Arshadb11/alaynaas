@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useApp, useTone } from './Providers';
@@ -10,9 +10,22 @@ import BuyPanel from './BuyPanel';
 import HeroSlider from './HeroSlider';
 import { buildHeroSlides } from '@/lib/hero';
 import { stages, materials, journal, discoverPrompts } from '@/lib/data';
+import { PdHero, PdRow, PdIntro, PdNotes, PdCharacter, PdVideo, PdFaq, PdComplete, PdRelated, PdNext, PdStickyBar, useStickyBar } from './ProductPage';
+import { PdReviews } from './ProductReviews';
+import { ProductJournal } from './JournalViews';
+import { track } from '@/lib/track';
 import { Continue, RoomProductView, StoryRooms, Finder } from './HouseViews';
-import { FamilyPanels, StorySplit, Signature } from './HomeSections';
-import { DiscoverySets, Dakhoon, ConcentratedOils, ExclusiveCreations, FindCta, QuoteBand } from './ProductSections';
+import { FamilyPanels, StorySplit } from './HomeSections';
+import { QuoteBand } from './ProductSections';
+import { HomeReviews, DiscoverCta } from './HomeReviews';
+import HomePromise from './HomePromise';
+import {
+  HouseMediums,
+  ExclusiveCreationsFeatured,
+  TheExplorations,
+  CraftSection,
+  FinalManifesto,
+} from './HouseCuration';
 
 const Arrow = () => <span className="arr"><Icon n="arrow" size={18} /></span>;
 
@@ -90,98 +103,42 @@ function Materials() {
   );
 }
 
-export function HomeView({ products, allProducts = [], categories = [], families = [] }) {
+export function HomeView({ products, allProducts = [], categories = [], families = [], reviews = null }) {
   useTone('light');
-  const { t, L, lang, settings } = useApp();
-  const [stage, setStage] = useState(0);
-  const [touched, setTouched] = useState(false);
-  useEffect(() => {
-    if (touched || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const id = setInterval(() => setStage((s) => (s + 1) % stages.length), 4200);
-    return () => clearInterval(id);
-  }, [touched]);
-  const ql = t.question.lines;
+  const { lang, settings } = useApp();
 
   return (
     <>
-      {/* OPENING: a slider of the house's worlds */}
+      {/* OPENING: Hero slider */}
       <HeroSlider
         label={settings?.store_name || 'ALAYNAAS'}
         interval={Number(settings?.hero_interval) || 7}
         slides={
           buildHeroSlides(settings?.hero_slides, lang) ||
-          [{ img: '/images/opening.jpg', kick: t.open.kicker, l1: t.open.l1, l2: t.open.l2, cta: t.open.shop, href: '#shop' }, ...(t.open.more || [])]
+          [{ img: '/images/opening.jpg', kick: 'ALAYNAAS', l1: 'For those who carry', l2: 'the crown.', cta: 'Shop the collection', href: '#shop' }]
         }
       />
 
-      {/* FAMILIES: scroll-driven category panels, driven by the catalog */}
+      {/* FAMILIES: scroll-driven olfactory family panels */}
       <FamilyPanels categories={categories} families={families} products={allProducts} />
-      {/* PRODUCT TYPES: each driven by category slugs / the limited-edition flag */}
-      <DiscoverySets products={allProducts} categories={categories} />
-      {/* SIGNATURE COMPOSITIONS: draggable carousel */}
-      <Signature products={allProducts.length ? allProducts : products} />
-      <Dakhoon products={allProducts} categories={categories} />
-      <ConcentratedOils products={allProducts} />
-      <ExclusiveCreations products={allProducts} />
 
-      {/* THE CRAFT */}
-      <section className="sec bone craft">
-        <div className="wrap">
-          <Reveal><p className="label">{t.craft.kicker}</p></Reveal>
-          <Headline className="h-xl" lines={t.craft.h} />
-          <div className="craft-grid">
-            <Reveal className="craft-media"><Parallax speed={0.08}><Image src="/images/craft.jpg" alt="" fill sizes="(max-width:900px) 100vw, 50vw" /></Parallax></Reveal>
-            <div>
-              <Lines className="copy" lines={t.craft.lines} />
-              <ol className="stages" onMouseLeave={() => {}}>
-                {stages.map((s, i) => (
-                  <li key={i} className={i === stage ? 'on' : i < stage ? 'done' : ''}>
-                    <button onClick={() => { setTouched(true); setStage(i); }} onMouseEnter={() => { setTouched(true); setStage(i); }} aria-expanded={i === stage}>
-                      <span className="n">0{i + 1}</span><span className="k">{L(s.k)}</span>
-                    </button>
-                    <p>{L(s.t)}</p>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 1. THE HOUSE MEDIUMS (Perfumes, Pure Oils, Bakhoor, Oud Ma'attar) */}
+      <HouseMediums categories={categories} products={allProducts} />
 
-      {/* STORY, short quote, then the guide CTA */}
-      <StorySplit />
-      <QuoteBand />
-      <FindCta />
+      {/* DISCOVER YOUR SCENT: CTA to the quiet diagnostic */}
+      <DiscoverCta />
 
-      {/* JOURNAL */}
-      <section className="sec bone">
-        <div className="wrap">
-          <div className="jrn-head"><div><Reveal><p className="label">{t.jrn.kicker}</p></Reveal><Headline className="h-xl" lines={[t.jrn.h]} /></div><Link href="/journal" className="tlink">{t.jrn.all}<Arrow /></Link></div>
-          <div className="jrn-grid">
-            <Reveal className="jrn-img"><Parallax speed={0.05}><Image src="/images/journal.jpg" alt="" fill sizes="(max-width:900px) 100vw, 40vw" /></Parallax></Reveal>
-            <ul className="jrn-list">
-              {journal.slice(0, 4).map((j, i) => (
-                <Reveal as="li" key={j.slug} delay={i * 80}>
-                  <Link href={`/journal/${j.slug}`}><span className="n">0{i + 1}</span><span className="tt">{j.title}</span><span className="ex">{j.excerpt}</span><Arrow /></Link>
-                </Reveal>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
+      {/* 2. EXCLUSIVE CREATIONS (Private Reserve / Numbered Limited Editions) */}
+      <ExclusiveCreationsFeatured products={allProducts} />
 
-      {/* FINAL */}
-      <section className="fl">
-        <div className="wrap fl-grid">
-          <div className="fl-copy">
-            <Headline as="h2" className="fl-h" lines={[t.final.h]} />
-            <Lines className="copy" lines={t.final.lines} />
-            <Reveal className="fl-actions"><Link href="/fragrances" className="btn">{t.home.shopAll}</Link><Link href="/discover" className="tlink">{t.finder.kicker}<Arrow /></Link></Reveal>
-            <Reveal className="fl-sign"><span className="wm">{t.brand}</span><span className="label">{t.tagline}</span></Reveal>
-          </div>
-          <Reveal className="fl-img"><Parallax speed={0.05}><Image src="/images/perfume.jpg" alt="" fill sizes="(max-width:900px) 100vw, 40vw" /></Parallax></Reveal>
-        </div>
-      </section>
+      {/* OUR PROMISE (editable in admin) */}
+      <HomePromise />
+
+      {/* CUSTOMER REVIEWS (approved in admin) */}
+      <HomeReviews data={reviews} />
+
+      {/* 3. THE EXPLORATIONS (Discovery Sets & Travel Sets) */}
+      <TheExplorations />
     </>
   );
 }
@@ -194,134 +151,103 @@ export function FragranceView(props) {
   return <EdpView {...props} />;
 }
 
-function EdpView({ product, next, products = [] }) {
-  const { t, L, money, addItem } = useApp();
-  const dark = ['ember-noir', 'after-dark'].includes(product?.slug);
-  useTone(dark ? 'light' : 'dark');
+function EdpView({ product, next, products = [], journal = [] }) {
+  const { t, L, lang } = useApp();
+  useTone('dark');
   const [qty, setQty] = useState(1);
   const [vi, setVi] = useState(0);
   const variant = product?.variants?.[vi];
   const price = variant ? variant.price : product?.price;
-  const [showBar, setShowBar] = useState(false);
-  const heroRef = useRef(null);
-  const ctaRef = useRef(null);
-  const [specRef, specSeen] = useInView();
-  useEffect(() => {
-    if (!heroRef.current || !ctaRef.current) return;
-    let heroOut = false, ctaIn = false;
-    const upd = () => setShowBar(heroOut && !ctaIn);
-    const a = new IntersectionObserver(([e]) => { heroOut = !e.isIntersecting; upd(); });
-    const b = new IntersectionObserver(([e]) => { ctaIn = e.isIntersecting; upd(); });
-    a.observe(heroRef.current); b.observe(ctaRef.current);
-    return () => { a.disconnect(); b.disconnect(); };
-  }, [product]);
+  const { showBar, heroRef, ctaRef } = useStickyBar(product);
+  useEffect(() => { if (product) track('view_item', { value: product.price, items: [{ id: product.id, name: product.name, price: product.price }] }); }, [product?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!product) return <div className="page wrap empty-state big"><h1 className="h-xl">{t.product.notFound}</h1><Link className="btn" href="/fragrances">{t.cart.continue}</Link></div>;
-  const w = product.world;
+  if (!product) return <div className="page wrap empty-state big"><h1 className="h-xl">{t.product.notFound}</h1><Link className="btn" href="/shop">{t.cart.continue}</Link></div>;
+  const kicker = product.fragrance_family || [product.category_name, product.mood ? L(product.mood) : ''].filter(Boolean).join(' · ');
   return (
-    <div className="fpage" style={{ '--bg': w.bg, '--fg': w.fg, '--ac': w.accent }}>
-      <section className="fhero" ref={heroRef}>
-        <div className="fhero-gal"><Gallery images={galleryOf(product)} alt={product.name} /></div>
-        <BuyPanel product={product} label={`${product.no} — ${L(product.mood)}`} vi={vi} setVi={setVi} qty={qty} setQty={setQty} price={price} variant={variant} buyRef={ctaRef} />
-      </section>
+    <div className="pd">
+      <PdHero product={product} kicker={kicker} vi={vi} setVi={setVi} qty={qty} setQty={setQty} price={price} variant={variant} buyRef={ctaRef} heroRef={heroRef} />
 
-      <section className="fsec center-text">
-        <Reveal><p className="label">{t.product.impression}</p></Reveal>
-        <Reveal delay={100}><p className="impression">{L(product.impression)}</p></Reveal>
-      </section>
+      <PdIntro impression={product.impression} story={product.story} />
 
-      <section className="fsec">
-        <div className="wrap split-2">
-          <Reveal><p className="label">{t.product.story}</p></Reveal>
-          <div className="copy">{L(product.story).map((p, i) => <Reveal key={i} delay={i * 100}><p>{p}</p></Reveal>)}</div>
-        </div>
-      </section>
+      <PdNotes notes={product.notes} items={product.note_items} />
+      {!product.notes && <PdRow label={t.product.notes}><p>{t.product.notesPending}</p></PdRow>}
 
-      <section className="fsec">
-        <div className="wrap split-2">
-          <Reveal><p className="label">{t.product.character}</p></Reveal>
-          <div className={`spectrum ${specSeen ? 'in' : ''}`} ref={specRef}>
-            {product.spectrum.map(([a, b, v], i) => (
-              <div className="spec" key={i} style={{ '--v': `${v}%`, '--d': `${i * 120}ms` }}>
-                <span>{L(a)}</span><div className="track"><i /></div><span>{L(b)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="fsec">
-        <div className="wrap split-2">
-          <Reveal><p className="label">{t.product.notes}</p></Reveal>
-          {product.notes ? (
-            <div className="notes3">
-              {['top', 'heart', 'base'].map((k, i) => (
-                <Reveal key={k} delay={i * 100}><span className="label">{t.product[k]}</span><ul>{product.notes[k].map((n) => <li key={n}>{n}</li>)}</ul></Reveal>
-              ))}
-            </div>
-          ) : <Reveal><p className="serif-i">{t.product.notesPending}</p></Reveal>}
-        </div>
-      </section>
-
-      <section className="fsec">
-        <div className="wrap">
-          <Reveal><p className="label">{t.product.experience}</p></Reveal>
-          <div className="exp">
-            {['opening', 'heart', 'drydown'].map((k, i) => (
-              <Reveal key={k} delay={i * 120} className="exp-step"><span className="n">0{i + 1}</span><h3>{t.product[k === 'heart' ? 'heartL' : k]}</h3><p>{L(product.experience[k])}</p></Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="fsec">
-        <div className="wrap split-2">
-          <Reveal><p className="label">{t.product.wear}</p></Reveal>
-          <ul className="wear">{product.wear.map((x, i) => <Reveal as="li" key={i} delay={i * 80}>{L(x)}</Reveal>)}</ul>
-        </div>
-      </section>
-
-      <Continue product={product} products={products} />
-
-      {next && (
-        <Link href={`/fragrance/${next.slug}`} className="next-world" style={{ '--nbg': next.world.bg, '--nfg': next.world.fg }}>
-          <span className="label">{t.product.next}</span><strong>{next.name}</strong><Arrow />
-        </Link>
-      )}
-
-      <div className={`sticky-buy ${showBar ? 'show' : ''}`} aria-hidden={!showBar}>
-        <span><strong>{product.name}</strong><span className="label">{money(price)}</span></span>
-        <button className="btn btn-fill" tabIndex={showBar ? 0 : -1} onClick={() => addItem(product, qty, variant)}>{t.product.add}</button>
-      </div>
+      <PdCharacter spectrum={product.spectrum} wear={product.wear} />
+      <PdVideo video={product.video} product={product} />
+      <PdReviews product={product} />
+      <PdFaq />
+      <PdComplete product={product} products={products} />
+      <PdRelated product={product} products={products} />
+      <ProductJournal entries={journal} />
+      <PdNext next={next} />
+      <PdStickyBar show={showBar} product={product} price={price} qty={qty} variant={variant} />
     </div>
   );
 }
 
 /* ───────────── Story ───────────── */
-const STORY_IMG = ['/images/question.jpg', '/images/notebook.jpg', '/images/workbench.jpg', '/images/materials.jpg', '/images/uae.jpg'];
-export function StoryView({ categories = [] }) {
-  useTone('light');
-  const { t } = useApp();
+const STORY_IMG = [
+  { src: '/images/story/01-fascination.jpg', alt: 'A hand holding a scent strip up to window light' },
+  { src: '/images/story/04-materials.jpg', alt: 'Oud wood, frankincense, rose buds and saffron on linen' },
+  { src: '/images/story/02-decision.jpg', alt: 'A hand pressing a wax seal on an envelope at a workbench' },
+  { src: '/images/story/05-here.jpg', alt: 'Incense smoke rising from a burner on a desert dune at sunset' },
+];
+
+/* One chapter of the story: photograph + words, alternating sides */
+function StoryChapter({ i, total, title, text, img }) {
+  const [ref, seen] = useInView();
   return (
-    <div>
-      <section className="sec ink story-open">
-        <div className="wrap">
-          <Reveal><p className="label light">{t.story.kicker}</p></Reveal>
-          <Headline as="h1" className="mega up" lines={t.story.h} />
-          <Lines className="copy big" lines={t.story.open} />
+    <section className={`st-ch ${i % 2 ? 'rev' : ''} ${seen ? 'in' : ''}`} ref={ref}>
+      <figure className="st-fig">
+        {img && <Image src={img.src} alt={img.alt} fill sizes="(max-width:1000px) 100vw, 50vw" priority={i === 0} />}
+      </figure>
+      <div className="st-copy">
+        <p className="st-eyebrow">{String(i + 1).padStart(2, '0')} <span>/ {String(total).padStart(2, '0')}</span></p>
+        <h2 className="st-h2">{title}</h2>
+        <p className="st-p">{text}</p>
+      </div>
+    </section>
+  );
+}
+
+export function StoryView({ categories = [] }) {
+  useTone('dark');
+  const { t } = useApp();
+  const sections = t.story.sections;
+  return (
+    <div className="st">
+      {/* Opening */}
+      <section className="st-hero">
+        <div className="st-wrap">
+          <p className="st-eyebrow">{t.story.kicker}</p>
+          <h1 className="st-title">{[].concat(t.story.h).map((l) => <span key={l} className="st-tl">{l}</span>)}</h1>
+          <div className="st-open">
+            {t.story.open.map((line, i) => <p key={i}>{line}</p>)}
+          </div>
         </div>
       </section>
-      <section className="sec bone story-body" id="inside">
-        <div className="wrap">
-          {t.story.sections.map(([h, p], i) => (
-            <div className="story-row" key={h}>
-              <Reveal><p className="label">0{i + 1}</p><h2 className="h-md">{h}</h2></Reveal>
-              <Reveal delay={100}><p className="story-p">{p}</p>{STORY_IMG[i] && <div className="story-fig"><Image src={STORY_IMG[i]} alt="" fill sizes="(max-width:900px) 100vw, 50vw" /></div>}</Reveal>
-            </div>
+
+      {/* Chapters, each with its own photograph */}
+      {sections.map(([h, p], i) => (
+        <StoryChapter key={h} i={i} total={sections.length} title={h} text={p} img={STORY_IMG[i]} />
+      ))}
+
+      <section className="st-close">
+        <div className="st-wrap">
+          {[].concat(t.story.close).map((line, i, a) => (
+            <p key={i} className={`st-close-p ${i === 1 ? 'em' : ''} ${i === a.length - 2 ? 'brand' : ''} ${i === a.length - 1 ? 'tag' : ''}`}>{line}</p>
           ))}
-          <Reveal className="story-close"><p className="serif-i">{t.story.close}</p><Link href="/fragrances" className="tlink">{t.nav.fragrances}<Arrow /></Link></Reveal>
+          <Link href="/shop" className="st-link">{t.nav.fragrances}<Arrow /></Link>
         </div>
       </section>
+
+      {/* The Craft: 5 Formulation & Maceration Stages */}
+      <CraftSection />
+
+      {/* Olfactory Quote */}
+      <QuoteBand />
+
+      {/* The Rooms */}
       <StoryRooms categories={categories} />
     </div>
   );

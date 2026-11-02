@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
+
+// Origin of the Express backend (uploads are served from it). Derived from NEXT_PUBLIC_API_URL, e.g. https://api.example.com/api/store
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/store').replace(/\/api\/store\/?$/, '').replace(/\/$/, '');
+
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
@@ -11,12 +16,37 @@ const nextConfig = {
     // Next 16 blocks private/local IPs by default; needed only in development
     dangerouslyAllowLocalIP: process.env.NODE_ENV !== 'production',
     qualities: [75, 85],
+    formats: ['image/avif', 'image/webp'],
+  },
+  async redirects() {
+    return [
+      { source: '/fragrances', destination: '/shop', permanent: true },
+      { source: '/fragrances/:category', destination: '/shop/:category', permanent: true },
+    ];
   },
   async rewrites() {
     return [
       {
         source: '/uploads/:path*',
-        destination: 'http://localhost:3000/uploads/:path*',
+        destination: `${API_ORIGIN}/uploads/:path*`,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+      {
+        // Static brand imagery: cache for a week, refresh in the background
+        source: '/images/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' }],
       },
     ];
   },

@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { dict, SHIPPING_FEE, SHIPPING_FREE_OVER } from '@/lib/i18n';
+import { track } from '@/lib/track';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -31,11 +32,15 @@ export default function Providers({ initialLang, settings = {}, children }) {
   useEffect(() => { if (ready) localStorage.setItem('aly_cart', JSON.stringify(items)); }, [items, ready]);
   useEffect(() => { document.body.style.overflow = drawer || menu ? 'hidden' : ''; }, [drawer, menu]);
 
+  // The URL decides the language (/ar/... = Arabic); keep state in step with soft navigations.
+  useEffect(() => { setLangState(initialLang); }, [initialLang]);
+
   const setLang = useCallback((l) => {
     document.cookie = `lang=${l}; path=/; max-age=31536000`;
-    document.documentElement.lang = l;
-    document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
-    setLangState(l);
+    const { pathname, search, hash } = window.location;
+    const bare = pathname.replace(/^\/ar(?=\/|$)/, '') || '/';
+    const next = (l === 'ar' ? '/ar' + (bare === '/' ? '' : bare) : bare) + search + hash;
+    window.location.assign(next);
   }, []);
 
   const t = dict[lang];
@@ -55,10 +60,11 @@ export default function Providers({ initialLang, settings = {}, children }) {
     const id = variant ? `${product.id}-${variant.key}` : product.id;
     const price = variant ? variant.price : product.price;
     const size = variant ? variant.label : product.size;
+    track('add_to_cart', { value: price * qty, items: [{ id, productId: product.id, name: product.name, price, qty }] });
     setItems((prev) => {
       const found = prev.find((i) => i.id === id);
       if (found) return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + qty } : i));
-      return [...prev, { id, productId: product.id, slug: product.slug, qty, price, name: product.name, image: product.image, size }];
+      return [...prev, { id, productId: product.id, slug: product.slug, qty, price, name: product.name, image: product.image, size, variant: variant?.key }];
     });
     setDrawer(true);
   };
