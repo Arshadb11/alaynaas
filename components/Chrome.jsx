@@ -94,7 +94,6 @@ export function Header({ rooms = [], navMenu = [] }) {
   const resolveAsset = (u, fallback) => {
     if (!u) return fallback;
     if (u.startsWith('http://') || u.startsWith('https://')) return u;
-    if (u.startsWith('/uploads/')) return `http://localhost:3000${u}`;
     return u.startsWith('/') ? u : `/${u}`;
   };
 
@@ -525,7 +524,6 @@ export function Footer({ rooms = [], pages = [] }) {
   const resolveAsset = (u, fallback) => {
     if (!u) return fallback;
     if (u.startsWith('http://') || u.startsWith('https://')) return u;
-    if (u.startsWith('/uploads/')) return `http://localhost:3000${u}`;
     return u.startsWith('/') ? u : `/${u}`;
   };
   const footerLogoSrc = resolveAsset(settings?.footer_logo || settings?.frontend_logo_dark || settings?.frontend_logo, null);
