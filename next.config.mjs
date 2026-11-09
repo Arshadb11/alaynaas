@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 
-// Origin of the Express backend (uploads are served from it). Derived from NEXT_PUBLIC_API_URL, e.g. https://api.example.com/api/store
+// Origin of the Express backend. Derived from NEXT_PUBLIC_API_URL, e.g. https://api.example.com/api/store
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/store').replace(/\/api\/store\/?$/, '').replace(/\/$/, '');
+
+// Where /uploads/* files actually live. In production that's the Vercel Blob store
+// (e.g. https://<store>.public.blob.vercel-storage.com). It must answer 200 directly: the image
+// optimizer won't follow the API's /uploads → Blob redirect. Locally it's the Express server.
+const UPLOADS_ORIGIN = (process.env.UPLOADS_ORIGIN || API_ORIGIN).replace(/\/$/, '');
 
 const nextConfig = {
   reactStrictMode: true,
@@ -28,7 +33,7 @@ const nextConfig = {
     return [
       {
         source: '/uploads/:path*',
-        destination: `${API_ORIGIN}/uploads/:path*`,
+        destination: `${UPLOADS_ORIGIN}/uploads/:path*`,
       },
     ];
   },
