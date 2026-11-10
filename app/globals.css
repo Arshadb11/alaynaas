@@ -13377,3 +13377,22 @@ html[dir=rtl] .xv-meta small{letter-spacing:0;font-size:12px}
 @media (prefers-reduced-motion:reduce){
   .xv-hero-img,.xv-hero-in>*{opacity:1;animation:none}
 }
+/* ---------- QR code generator ---------- */
+.qr-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:40px;align-items:start}
+.qr-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.qr-tabs button{font:inherit;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:10px 16px;border:1px solid #e3dccb;background:#fff;color:#55635a;cursor:pointer;transition:all .2s}
+.qr-tabs button:hover{border-color:#caa46a;color:#15231b}
+.qr-tabs button.on{background:#15231b;border-color:#15231b;color:#fff}
+.qr-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;padding-top:24px;border-top:1px solid #e3dccb}
+.qr-color{display:flex;align-items:center;gap:10px;border:1px solid #e3dccb;padding:6px 10px;height:46px;box-sizing:border-box}
+.qr-color input{width:32px;height:32px;border:0;padding:0;background:none;cursor:pointer}
+.qr-color code{font-size:13px;letter-spacing:.04em;text-transform:none;color:#15231b}
+.ct-form label.qr-check{flex-direction:row;align-items:center;gap:10px}
+.qr-preview{position:sticky;top:calc(var(--hh,98px) + 24px);display:flex;flex-direction:column;gap:16px}
+.qr-frame{border:1px solid #e3dccb;aspect-ratio:1;display:grid;place-items:center;padding:20px}
+.qr-img,.qr-img svg{width:100%;height:100%;display:block}
+.qr-empty{color:#55635a;font-size:14px;text-align:center;margin:0;padding:0 24px}
+.qr-actions{display:flex;flex-direction:column;gap:10px}
+.qr-data{font-size:12px;color:#55635a;word-break:break-all;margin:0;padding:10px 12px;background:#f6f2e9;border:1px solid #e3dccb}
+.qr-note{font-size:13px;line-height:1.7;color:#55635a;margin:0}
+@media(max-width:1000px){.qr-grid{grid-template-columns:1fr}.qr-preview{position:static}}
