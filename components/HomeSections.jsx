@@ -127,7 +127,7 @@ const matchesFamily = (p, slug) => {
   return false;
 };
 
-export function FamilyPanels({ categories = [], families = [], products = [] }) {
+export function FamilyPanels({ categories = [], families = [], products = [], rating = null }) {
   const { lang, L, money, addItem } = useApp();
   const tx = TXT[lang] || TXT.en;
   const isAr = lang === 'ar';
@@ -229,6 +229,13 @@ export function FamilyPanels({ categories = [], families = [], products = [] }) 
           <Reveal><p className="label fps-kicker">{tx.fKick}</p></Reveal>
           <Headline className="h-xl fps-title" lines={[tx.fH]} />
           <Reveal><p className="fps-sub">{tx.fSub}</p></Reveal>
+          {rating?.count > 0 && (
+            <a href="#reviews" className="fps-rating" aria-label={isAr ? 'آراء العملاء' : 'Customer reviews'}>
+              <span className="fps-rating-stars" aria-hidden="true">★★★★★</span>
+              <strong>{Number(rating.average).toFixed(1)}</strong>
+              <span>{isAr ? `${rating.count} تقييم موثّق` : `${rating.count} verified reviews`}</span>
+            </a>
+          )}
         </div>
 
         {/* Navigation Arrows for the slider */}
@@ -333,9 +340,11 @@ function PerfumeSliderCard({ product, isAr, L, money, addItem, fromText, addText
   const price = selectedVariant ? selectedVariant.price : product.price;
   const name = isAr && product.name_ar ? product.name_ar : product.name;
   const line = L(product.line || '');
-  const familyLabel = isAr && product.fragrance_family_ar
-    ? product.fragrance_family_ar
-    : (product.fragrance_family || (product.notes?.top ? product.notes.top.slice(0, 2).join(' · ') : 'Eau de Parfum'));
+  // Scent line under the badge: families, else top notes, else nothing (the badge already says "Eau de Parfum")
+  const fam = product.fragrance_family;
+  const familyLabel = (isAr && product.fragrance_family_ar)
+    || (fam && typeof fam === 'object' ? (isAr ? fam.ar : fam.en) || fam.en : fam)
+    || (product.notes?.top?.length ? product.notes.top.slice(0, 3).join(' · ') : '');
 
   const handleAddToCart = (e) => {
     e.preventDefault();
@@ -353,11 +362,6 @@ function PerfumeSliderCard({ product, isAr, L, money, addItem, fromText, addText
           <span className="fps-badge">
             {product.collection === 'crown' ? (isAr ? 'مجموعة كراون' : 'Crown Collection') : 'Eau de Parfum'}
           </span>
-          {variants.length > 1 && (
-            <span className="fps-sizes-badge">
-              {isAr ? '١٠٠ مل و ١٠ مل' : '100ml & 10ml'}
-            </span>
-          )}
         </div>
 
         {/* Product Image Stage */}
@@ -378,7 +382,7 @@ function PerfumeSliderCard({ product, isAr, L, money, addItem, fromText, addText
 
         {/* Content & Purchasing Details */}
         <div className="fps-info">
-          <p className="fps-family-tag">{familyLabel}</p>
+          {familyLabel && <p className="fps-family-tag">{familyLabel}</p>}
 
           <h3 className="fps-card-title">
             <Link href={`/fragrance/${product.slug}`}>{name}</Link>
@@ -399,8 +403,6 @@ function PerfumeSliderCard({ product, isAr, L, money, addItem, fromText, addText
                     onClick={() => setSelectedVariant(v)}
                   >
                     <span className="fps-var-label">{v.label}</span>
-                    <span className="fps-var-sep">·</span>
-                    <span className="fps-var-price">{money(v.price)}</span>
                   </button>
                 );
               })}

@@ -1,6 +1,6 @@
 import { Jost, El_Messiri } from 'next/font/google';
 import Providers from '@/components/Providers';
-import { Header, Footer, CartDrawer } from '@/components/Chrome';
+import { Header, Footer, CartDrawer, WhatsAppButton } from '@/components/Chrome';
 import SmoothScroll from '@/components/SmoothScroll';
 import Analytics from '@/components/Analytics';
 import { getCategories, getProducts, getStoreSettings, getNavMenu, getStorePages } from '@/lib/api';
@@ -99,6 +99,7 @@ export default async function RootLayout({ children }) {
           <main>{children}</main>
           <Footer rooms={rooms} pages={storePages} />
           <CartDrawer />
+          <WhatsAppButton />
         </Providers>
       </body>
     </html>

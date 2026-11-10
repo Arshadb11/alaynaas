@@ -120,7 +120,7 @@ export function HomeView({ products, allProducts = [], categories = [], families
       />
 
       {/* FAMILIES: scroll-driven olfactory family panels */}
-      <FamilyPanels categories={categories} families={families} products={allProducts} />
+      <FamilyPanels categories={categories} families={families} products={allProducts} rating={reviews?.summary} />
 
       {/* 1. THE HOUSE MEDIUMS (Perfumes, Pure Oils, Bakhoor, Oud Ma'attar) */}
       <HouseMediums categories={categories} products={allProducts} />
