@@ -393,7 +393,7 @@ export function AtelierResult({ creation }) {
                 </div>
               ) : <p className="atl-price-note">{L.price}</p>}
               <label>{L.name}<input className="inp" required minLength={2} maxLength={100} value={form.name} onChange={set('name')} autoComplete="name" /></label>
-              <label>{L.phone}<input className="inp" required dir="ltr" inputMode="tel" placeholder="+971 50 000 0000" pattern="[+0-9 ()-]{7,20}" value={form.phone} onChange={set('phone')} autoComplete="tel" /></label>
+              <label>{L.phone}<input className="inp" required dir="ltr" inputMode="tel" placeholder="+971 50 000 0000" minLength={7} maxLength={20} value={form.phone} onChange={set('phone')} autoComplete="tel" /></label>
               <label>{L.email}<input className="inp" type="email" dir="ltr" maxLength={150} value={form.email} onChange={set('email')} autoComplete="email" /></label>
               <input className="ct-hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={set('website')} name="website" />
               {error && <p className="ct-err">{error}</p>}
