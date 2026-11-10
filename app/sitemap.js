@@ -25,6 +25,7 @@ export default async function sitemap() {
     u('/journal', { lastModified: now, changeFrequency: 'weekly', priority: 0.6 }),
     u('/corporate-orders', { changeFrequency: 'monthly', priority: 0.7 }),
     u('/contact', { changeFrequency: 'yearly', priority: 0.4 }),
+    u('/atelier', { changeFrequency: 'monthly', priority: 0.6 }),
   ];
 
   const cats = categories
