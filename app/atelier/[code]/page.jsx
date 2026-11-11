@@ -10,8 +10,8 @@ export async function generateMetadata({ params }) {
   if (!c) return { robots: { index: false } };
   const name = ar ? c.formula.name.ar : c.formula.name.en;
   const meta = await buildMeta({
-    title: ar ? `${name}: تركيبة من أتيليه التاج` : `${name}: composed at the Crown Atelier`,
-    description: ar ? c.formula.story.ar : c.formula.story.en,
+    title: ar ? `${name}: طقس التاج` : `${name}: a Crown Ritual`,
+    description: ar ? (c.story || c.formula.story).ar : (c.story || c.formula.story).en,
     path: `/atelier/${c.code}`,
   });
   // Personal results: shareable, but kept out of search engines

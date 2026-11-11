@@ -18,6 +18,7 @@ function Totals({ children, compact }) {
       <div className="ck-ship"><p>{msg}</p><div className="ck-bar"><i style={{ transform: `scaleX(${totals.freeProgress})` }} /></div></div>
       <div className="ck-rows">
         <div><span>{t.cart.subtotal}</span><span>{money(totals.subtotal)}</span></div>
+        {totals.discount > 0 && <div className="ck-disc"><span>{t.cart.ritual}</span><span>−{money(totals.discount)}</span></div>}
         <div><span>{t.cart.shipping}</span><span>{totals.shipping ? money(totals.shipping) : t.cart.free}</span></div>
         <div className="ck-total"><span>{t.cart.total}</span><strong>{money(totals.total)}</strong></div>
       </div>
@@ -193,6 +194,7 @@ export function CheckoutView() {
           name: i.name,
         })),
         totals,
+        atelier_code: totals.ritualCode || undefined,
       });
       track('purchase', { transaction_id: order.order_number || order.id, value: totals.total, items });
       try {

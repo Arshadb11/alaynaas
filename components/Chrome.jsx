@@ -441,6 +441,7 @@ export function CartDrawer() {
         {items.length > 0 && (
           <div className="drawer-foot">
             <div className="row-between"><span>{t.cart.subtotal}</span><strong>{money(totals.subtotal)}</strong></div>
+            {totals.discount > 0 && <div className="row-between drawer-disc"><span>{t.cart.ritual}</span><strong>−{money(totals.discount)}</strong></div>}
             <p className="label">{t.cart.vat}</p>
             <Link href="/checkout" className="btn btn-block">{t.cart.checkout}</Link>
             <Link href="/cart" className="link center">{t.cart.viewCart}</Link>

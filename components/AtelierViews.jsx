@@ -3,17 +3,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/components/Link';
 import { useApp } from './Providers';
-import { composeAtelier, reserveAtelier } from '@/lib/api';
+import { composeAtelier } from '@/lib/api';
 
 /*
- * THE CROWN ATELIER: compose a personal perfume.
+ * THE CROWN ATELIER: answer a few questions, receive your Crown Ritual
+ * (a layering of an oil, a perfume and bakhoor from the shop, chosen by the API from their notes).
  * The questionnaire keys must match the API engine (server/src/services/atelier.engine.js).
  */
 
 const T = (en, ar) => ({ en, ar });
 const STEPS = [
   {
-    key: 'who', type: 'one', q: T('Who is this perfume for?', 'لمن هذا العطر؟'),
+    key: 'who', type: 'one', q: T('Who is this ritual for?', 'لمن هذا الطقس؟'),
     options: [
       ['self', T('For me', 'لي'), T('A signature of my own', 'بصمة خاصة بي')],
       ['him', T('For him', 'له'), T('Composed for a man', 'مركّب لرجل')],
@@ -71,7 +72,7 @@ const STEPS = [
     ],
   },
   { key: 'intensity', type: 'scale', q: T('How strongly should it be felt?', 'ما مدى قوة حضوره؟') },
-  { key: 'label', type: 'label', q: T('Whose name goes on the bottle?', 'أي اسم يُكتب على الزجاجة؟'), hint: T('Optional: printed on your label', 'اختياري: يُطبع على الملصق') },
+  { key: 'label', type: 'label', q: T('Whose name goes on the ritual card?', 'أي اسم يُكتب على بطاقة الطقس؟'), hint: T('Optional', 'اختياري') },
 ];
 const INTENSITY = [
   null, T('Whisper', 'همسة'), T('Soft', 'ناعم'), T('Present', 'حاضر'), T('Bold', 'جريء'), T('Commanding', 'طاغٍ'),
@@ -80,40 +81,6 @@ const TONES = {
   woody: ['#4a2f1b', '#9a6a3c'], floral: ['#8f3f55', '#e3a0b1'], amber: ['#7a3f10', '#e0a04a'], fresh: ['#3f7b78', '#bfe0d9'],
   spicy: ['#6e2a12', '#c9733a'], musky: ['#8c7e70', '#e6dccf'], smoky: ['#2b2624', '#7b6f66'], sweet: ['#8a3f2a', '#e7a37a'],
 };
-
-/* ───────────── The bottle (SVG, tinted by the formula) ───────────── */
-export function AtelierBottle({ name, code, label, tone = 'amber', isAr }) {
-  const [deep, light] = TONES[tone] || TONES.amber;
-  const id = `b${code || 'x'}`.replace(/[^a-z0-9]/gi, '');
-  const shortName = String(name || '').length > 22 ? `${String(name).slice(0, 21)}…` : name;
-  return (
-    <svg className="atl-bottle" viewBox="0 0 300 420" role="img" aria-label={name}>
-      <defs>
-        <linearGradient id={`${id}l`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={light} /><stop offset="1" stopColor={deep} /></linearGradient>
-        <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#8a6a32" /><stop offset=".45" stopColor="#f3dc9c" /><stop offset=".55" stopColor="#d8b56a" /><stop offset="1" stopColor="#7a5a26" /></linearGradient>
-        <linearGradient id={`${id}s`} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#fff" stopOpacity=".55" /><stop offset=".25" stopColor="#fff" stopOpacity="0" /><stop offset=".8" stopColor="#fff" stopOpacity="0" /><stop offset="1" stopColor="#fff" stopOpacity=".25" /></linearGradient>
-        <radialGradient id={`${id}h`} cx=".5" cy="1" r=".6"><stop offset="0" stopColor="#000" stopOpacity=".18" /><stop offset="1" stopColor="#000" stopOpacity="0" /></radialGradient>
-      </defs>
-      <ellipse cx="150" cy="404" rx="118" ry="12" fill={`url(#${id}h)`} />
-      {/* cap */}
-      <rect x="104" y="18" width="92" height="74" rx="6" fill={`url(#${id}g)`} />
-      {Array.from({ length: 11 }).map((_, i) => <rect key={i} x={110 + i * 8} y="24" width="2" height="62" fill="#000" opacity=".12" />)}
-      <rect x="122" y="92" width="56" height="16" fill={`url(#${id}g)`} />
-      {/* glass + juice */}
-      <rect x="40" y="104" width="220" height="296" rx="34" fill="#fff" opacity=".35" stroke="#000" strokeOpacity=".08" />
-      <rect x="50" y="128" width="200" height="262" rx="26" fill={`url(#${id}l)`} opacity=".92" />
-      <rect x="40" y="104" width="220" height="296" rx="34" fill={`url(#${id}s)`} />
-      {/* label */}
-      <rect x="78" y="196" width="144" height="128" rx="3" fill="#faf8f3" stroke="#c9a96a" strokeWidth="1.2" />
-      <rect x="84" y="202" width="132" height="116" rx="2" fill="none" stroke="#c9a96a" strokeOpacity=".6" strokeWidth=".6" />
-      <text x="150" y="226" textAnchor="middle" className="atl-b-house">ALAYNAA&apos;S</text>
-      <path d="M140 234 l4 -6 l6 5 l6 -5 l4 6 z" fill="#c9a96a" />
-      <text x="150" y="262" textAnchor="middle" className="atl-b-name" direction={isAr ? 'rtl' : 'ltr'}>{shortName}</text>
-      {label && <text x="150" y="284" textAnchor="middle" className="atl-b-for" direction={isAr ? 'rtl' : 'ltr'}>{isAr ? `صُنع لـ ${label}` : `Made for ${label}`}</text>}
-      <text x="150" y="308" textAnchor="middle" className="atl-b-code">N° {code}</text>
-    </svg>
-  );
-}
 
 /* ───────────── Questionnaire ───────────── */
 export function AtelierComposer() {
@@ -130,8 +97,9 @@ export function AtelierComposer() {
 
   const s = STEPS[step];
   const L = isAr
-    ? { kicker: 'أتيليه التاج', title: 'ركّب عطرًا لا يملكه أحد سواك', lead: 'أجب عن أسئلة قليلة، وسيُركّب الأتيليه تركيبة عطرية خاصة بك: نوتاتها، ونسبها، واسمها، وزجاجتها باسمك.', start: 'ابدأ التركيب', meta: ['دقيقتان', '٨ أسئلة', 'تركيبة فريدة'], back: 'رجوع', next: 'التالي', compose: 'ركّب عطري', skip: 'تخطَّ', of: 'من', phases: ['نختار نوتات الافتتاح…', 'نوازن قلب العطر…', 'نعتّق القاعدة…', 'نكتب اسمك على الزجاجة…'], err: 'تعذّر التركيب، حاول مرة أخرى.', placeholder: 'مثال: سارة' }
-    : { kicker: 'The Crown Atelier', title: 'Compose a perfume no one else owns', lead: 'Answer a few questions and the Atelier composes a formula that is yours alone: its notes, their proportions, its name, and a bottle with your name on it.', start: 'Begin composing', meta: ['2 minutes', '8 questions', 'One-of-a-kind formula'], back: 'Back', next: 'Next', compose: 'Compose my perfume', skip: 'Skip', of: 'of', phases: ['Selecting the opening notes…', 'Balancing the heart…', 'Ageing the base…', 'Writing your name on the bottle…'], err: 'Could not compose. Please try again.', placeholder: 'e.g. Sara' };
+    ? { kicker: 'أتيليه التاج', title: 'اكتشف طقس التاج الخاص بك', lead: 'في الخليج يُنسج العطر طبقات: دهن على البشرة، وعطر فوقه، وبخور للثياب والمجلس. أجب عن أسئلة قليلة، وسيبني الأتيليه طقسك من إبداعاتنا، باسم خاص به واسمك عليه.', start: 'ابدأ', meta: ['دقيقتان', '٨ أسئلة', 'طقس خاص بك'], back: 'رجوع', next: 'التالي', compose: 'اكشف طقسي', skip: 'تخطَّ', of: 'من', phases: ['نقرأ إجاباتك…', 'نختار دهن القاعدة…', 'نطابق عطر توقيعك…', 'نكتب اسمك على البطاقة…'], err: 'تعذّر إنشاء طقسك، حاول مرة أخرى.', placeholder: 'مثال: سارة', sample: [['القاعدة', 'دهن عطري'], ['التوقيع', 'عطرك'], ['اللمسة الأخيرة', 'بخور']] }
+    : { kicker: 'The Crown Atelier', title: 'Discover your Crown Ritual', lead: 'In the Gulf, a scent is worn in layers: an oil on the skin, a perfume over it, and bakhoor for the clothes and the majlis. Answer a few questions and the Atelier builds yours from our creations, with a name of its own and yours on it.', start: 'Begin', meta: ['2 minutes', '8 questions', 'A ritual of your own'], back: 'Back', next: 'Next', compose: 'Reveal my ritual', skip: 'Skip', of: 'of', phases: ['Reading your answers…', 'Choosing your base oil…', 'Matching your signature perfume…', 'Writing your name on the card…'], err: 'Could not create your ritual. Please try again.', placeholder: 'e.g. Sara', sample: [['The base', 'A perfume oil'], ['The signature', 'Your perfume'], ['The finish', 'Bakhoor']] };
+  const sampleSteps = L.sample.map(([title, name]) => ({ title, name }));
 
   const enabled = settings.atelier_enabled !== false;
   const gift = isAr ? settings.atelier_gift_ar : settings.atelier_gift_en;
@@ -199,7 +167,7 @@ export function AtelierComposer() {
           {gift && <p className="atl-gift-note">{gift}</p>}
         </div>
         <div className="atl-intro-art" aria-hidden="true">
-          <AtelierBottle name={isAr ? 'عطرك' : 'Your perfume'} code="AL-?????" label={isAr ? 'أنت' : 'You'} tone="amber" isAr={isAr} />
+          <RitualCard name={isAr ? 'طقسك' : 'Your ritual'} code="AL-?????" label={isAr ? 'أنت' : 'You'} steps={sampleSteps} isAr={isAr} preview />
         </div>
       </div>
     );
@@ -248,7 +216,7 @@ export function AtelierComposer() {
       {s.type === 'label' && (
         <div className="atl-label-step">
           <input className="inp" maxLength={24} value={a.label} placeholder={L.placeholder} onChange={(e) => setA((p) => ({ ...p, label: e.target.value }))} />
-          <AtelierBottle name={isAr ? 'عطرك' : 'Your perfume'} code="AL-?????" label={a.label.trim() || (isAr ? '…' : '…')} tone="amber" isAr={isAr} />
+          <RitualCard name={isAr ? 'طقسك' : 'Your ritual'} code="AL-?????" label={a.label.trim() || '…'} steps={sampleSteps} isAr={isAr} preview />
         </div>
       )}
 
@@ -263,145 +231,219 @@ export function AtelierComposer() {
   );
 }
 
-/* ───────────── Result ───────────── */
+/* ───────────── The ritual card (hero of the result, also a preview while answering) ───────────── */
+export function RitualCard({ name, code, label, steps = [], tone = 'amber', isAr, preview }) {
+  const [deep, light] = TONES[tone] || TONES.amber;
+  return (
+    <div className={`atl-card-r${preview ? ' is-preview' : ''}`} style={{ '--t1': deep, '--t2': light }} dir={isAr ? 'rtl' : 'ltr'}>
+      <span className="atl-card-r-house">ALAYNAA&apos;S</span>
+      <svg className="atl-card-r-crown" viewBox="0 0 40 24" aria-hidden="true"><path d="M3 21 L6 6 L14 13 L20 2 L26 13 L34 6 L37 21 Z" /></svg>
+      <span className="atl-card-r-kick">{isAr ? 'طقس التاج' : 'The Crown Ritual'}</span>
+      <strong className="atl-card-r-name">{name}</strong>
+      {label && <em className="atl-card-r-for">{isAr ? `صُنع لـ ${label}` : `Made for ${label}`}</em>}
+      <ol className="atl-card-r-steps">
+        {steps.map((s, i) => (
+          <li key={i}><span>{String(i + 1).padStart(2, '0')} · {s.title}</span><b>{s.name}</b></li>
+        ))}
+      </ol>
+      <span className="atl-card-r-code" dir="ltr">N° {code}</span>
+    </div>
+  );
+}
+
+/* A 1080×1920 image of the card for Instagram / Snapchat stories (drawn in the browser, nothing uploaded) */
+async function storyImage({ name, label, code, steps, isAr }) {
+  const W = 1080; const H = 1920;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const font = getComputedStyle(document.body).fontFamily;
+  try { await document.fonts?.ready; } catch { /* ignore */ }
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1d3025'); g.addColorStop(1, '#0d1611');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#b8935a'; x.lineWidth = 3; x.strokeRect(70, 70, W - 140, H - 140);
+  x.lineWidth = 1; x.strokeRect(92, 92, W - 184, H - 184);
+  x.textAlign = 'center'; x.direction = isAr ? 'rtl' : 'ltr';
+  const text = (t, y, size, color, weight = 400, spacing = 0) => {
+    x.font = `${weight} ${size}px ${font}`; x.fillStyle = color;
+    if ('letterSpacing' in x) x.letterSpacing = `${spacing}px`;
+    x.fillText(t, W / 2, y);
+  };
+  const wrap = (t, size, weight, max) => {
+    x.font = `${weight} ${size}px ${font}`;
+    const words = String(t).split(' '); const lines = []; let line = '';
+    words.forEach((w) => { const test = line ? `${line} ${w}` : w; if (x.measureText(test).width > max && line) { lines.push(line); line = w; } else line = test; });
+    if (line) lines.push(line);
+    return lines;
+  };
+  text("ALAYNAA'S", 250, 34, '#b8935a', 500, 12);
+  x.save(); x.translate(W / 2 - 40, 285); x.scale(2, 2); x.fillStyle = '#b8935a';
+  x.fill(new Path2D('M3 21 L6 6 L14 13 L20 2 L26 13 L34 6 L37 21 Z')); x.restore();
+  text(isAr ? 'طقس التاج' : 'THE CROWN RITUAL', 420, 34, '#b8935a', 400, isAr ? 0 : 8);
+  let y = 590;
+  wrap(name, 100, 300, 840).forEach((l) => { text(l, y, 100, '#f4efe5', 300); y += 118; });
+  if (label) { text(isAr ? `صُنع لـ ${label}` : `Made for ${label}`, y + 10, 42, '#cfc6b4', 400); y += 70; }
+  y = Math.max(y + 110, 1000);
+  steps.forEach((s, i) => {
+    x.strokeStyle = 'rgba(184,147,90,.45)'; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(220, y - 70); x.lineTo(W - 220, y - 70); x.stroke();
+    text(`${String(i + 1).padStart(2, '0')} · ${s.title}`, y, 30, '#b8935a', 500, isAr ? 0 : 6);
+    text(s.name, y + 72, 58, '#f4efe5', 400);
+    y += 210;
+  });
+  text(`N° ${code}`, 1650, 32, '#b8935a', 500, 6);
+  text('alaynaas.com/atelier', 1720, 34, '#cfc6b4', 400, 2);
+  return new Promise((r) => c.toBlob(r, 'image/png'));
+}
+
+/* ───────────── Result: the Crown Ritual ───────────── */
 export function AtelierResult({ creation }) {
-  const { lang, settings = {}, money } = useApp();
+  const { lang, settings = {}, money, addRitual, addItem, items } = useApp();
   const isAr = lang === 'ar';
   const f = creation.formula;
   const pk = (o) => (o ? (isAr ? o.ar : o.en) : '');
-  const sizes = ['30', '50', '100'].map((sz) => [sz, Number(settings[`atelier_price_${sz}`]) || 0]).filter(([, p]) => p > 0);
+  const pname = (p) => (isAr ? p.name_ar || p.name : p.name);
+  const unit = (p) => p.variants?.[0]?.price ?? p.price;
   const gift = isAr ? settings.atelier_gift_ar : settings.atelier_gift_en;
-  const wa = String(settings.whatsapp_number || '').replace(/\D/g, '');
+  const steps = creation.ritual || [];
+  const pct = Number(creation.discount) || 0;
 
   const [mine, setMine] = useState(false);
-  const [size, setSize] = useState(sizes[1]?.[0] || sizes[0]?.[0] || '');
-  const [form, setForm] = useState({ name: '', phone: '', email: '', website: '' });
-  const [state, setState] = useState(creation.reserved ? 'taken' : 'idle');
-  const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
-
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(`atelier:${creation.code}`)) setMine(true);
-      if (localStorage.getItem(`atelier:reserved:${creation.code}`)) setState('done');
-    } catch { /* ignore */ }
+    try { if (sessionStorage.getItem(`atelier:${creation.code}`)) setMine(true); } catch { /* ignore */ }
   }, [creation.code]);
 
   const L = isAr
-    ? { kicker: 'تركيبتك', top: 'الافتتاح', heart: 'القلب', base: 'القاعدة', accords: 'الطابع العطري', conc: 'التركيز', lon: 'الثبات', sil: 'الفوحان', reserve: 'احجز تركيبتك', reserveSub: 'سيتواصل معك عطّارنا عبر واتساب لتأكيد طلبك وتجهيزه يدويًا.', name: 'الاسم', phone: 'رقم واتساب', email: 'البريد الإلكتروني (اختياري)', size: 'الحجم', send: 'احجز الآن', sending: 'جارٍ الحجز…', done: 'تم حجز تركيبتك', doneSub: 'سيتواصل معك فريقنا قريبًا عبر واتساب. احتفظ برمز تركيبتك:', chat: 'راسلنا الآن على واتساب', share: 'شارك عطرك', copied: 'تم نسخ الرابط', again: 'ركّب عطرًا آخر', taken: 'هذه التركيبة محجوزة لصاحبها.', own: 'ركّب عطرك الخاص', gift: 'هديتك', price: 'السعر عند الطلب' }
-    : { kicker: 'Your formula', top: 'Top', heart: 'Heart', base: 'Base', accords: 'Character', conc: 'Concentration', lon: 'Longevity', sil: 'Sillage', reserve: 'Reserve your formula', reserveSub: 'Our perfumer will contact you on WhatsApp to confirm and prepare it by hand.', name: 'Name', phone: 'WhatsApp number', email: 'Email (optional)', size: 'Size', send: 'Reserve now', sending: 'Reserving…', done: 'Your formula is reserved', doneSub: 'Our team will contact you on WhatsApp shortly. Keep your formula code:', chat: 'Message us on WhatsApp now', share: 'Share your perfume', copied: 'Link copied', again: 'Compose another', taken: 'This formula is reserved by its owner.', own: 'Compose your own', gift: 'Your gift', price: 'Price on request' };
+    ? { kicker: 'طقس التاج الخاص بك', steps: steps.length === 3 ? 'طقسك في ثلاث خطوات' : 'طقسك في خطوتين', step: 'الخطوة', match: 'تطابق', view: 'عرض التفاصيل', addAll: 'أضف طقسي إلى السلة', inBag: 'طقسك في السلة', total: 'إجمالي الطقس', save: `وفّر ${pct}% عند طلبها معًا`, gift: 'هديتك', share: 'شارك الرابط', story: 'احفظ صورة للقصص', saving: 'جارٍ التحضير…', copied: 'تم نسخ الرابط', again: 'اكتشف طقسًا آخر', own: 'اكتشف طقسك الخاص', more: 'إبداعات أخرى ستحبها', addOne: 'أضف إلى السلة', discT: 'لم تقرر بعد؟', discP: 'جرّب مجموعة الاستكشاف أولًا واكتشف المفضل لديك في بيتك.', character: 'الطابع', empty: 'نجهّز طقسك قريبًا. اكتشف مجموعتنا في الأثناء.', shop: 'تسوّق المجموعة' }
+    : { kicker: 'Your Crown Ritual', steps: steps.length === 3 ? 'Your ritual, in three steps' : 'Your ritual, in two steps', step: 'Step', match: 'match', view: 'View details', addAll: 'Add my ritual to bag', inBag: 'Your ritual is in your bag', total: 'Ritual total', save: `Save ${pct}% when ordered together`, gift: 'Your gift', share: 'Share link', story: 'Save image for Stories', saving: 'Preparing…', copied: 'Link copied', again: 'Discover another ritual', own: 'Discover your own ritual', more: 'More creations you would love', addOne: 'Add to bag', discT: 'Not sure yet?', discP: 'Try our Discovery Set first and find your favourite at home.', character: 'Character', empty: 'Your ritual is being prepared. Meanwhile, discover the collection.', shop: 'Shop the collection' };
 
-  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
-  async function reserve(e) {
-    e.preventDefault();
-    setState('sending'); setError('');
-    try {
-      await reserveAtelier(creation.code, { ...form, size });
-      try { localStorage.setItem(`atelier:reserved:${creation.code}`, '1'); } catch { /* ignore */ }
-      setState('done');
-    } catch (err) {
-      setError(err?.message || (isAr ? 'تعذّر الحجز، حاول مرة أخرى.' : 'Could not reserve. Please try again.'));
-      setState('idle');
-    }
-  }
+  const full = steps.reduce((s, st) => s + unit(st.product), 0);
+  const off = Math.round(full * pct) / 100;
+  const inBag = steps.length > 0 && steps.every((st) => items.some((i) => Number(i.productId ?? parseInt(i.id, 10)) === st.product.id));
+  const cardSteps = steps.map((st) => ({ title: pk(st.title), name: pname(st.product) }));
+
+  const addAll = () => addRitual(steps.map((st) => ({ ...st.product, name: pname(st.product) })), { code: creation.code, ids: steps.map((st) => st.product.id), pct });
 
   async function share() {
     const url = window.location.href;
     const title = pk(f.name);
     try {
-      if (navigator.share) { await navigator.share({ title, text: isAr ? `ركّبت عطري الخاص «${title}» في أتيليه عاليناء` : `I composed my own perfume, "${title}", at the ALAYNAA'S Atelier`, url }); return; }
+      if (navigator.share) { await navigator.share({ title, text: isAr ? `اكتشفت طقس التاج الخاص بي «${title}» في أتيليه عاليناء` : `I discovered my Crown Ritual, "${title}", at the ALAYNAA'S Atelier`, url }); return; }
       await navigator.clipboard.writeText(url);
       setCopied(true); setTimeout(() => setCopied(false), 1800);
     } catch { /* cancelled */ }
   }
 
-  const chatText = encodeURIComponent(isAr
-    ? `مرحبًا، حجزت تركيبتي «${f.name.ar}» (${creation.code})${size ? ` بحجم ${size} مل` : ''}.`
-    : `Hello, I reserved my formula "${f.name.en}" (${creation.code})${size ? `, ${size}ml` : ''}.`);
+  async function saveStory() {
+    setSaving(true);
+    try {
+      const blob = await storyImage({ name: pk(f.name), label: creation.label_name, code: creation.code, steps: cardSteps, isAr });
+      const file = new File([blob], `crown-ritual-${creation.code}.png`, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: pk(f.name) }); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    } catch { /* cancelled */ } finally { setSaving(false); }
+  }
+
   const otherName = isAr ? f.name.en : f.name.ar;
 
   return (
     <div className="atl atl-res">
       <section className="atl-hero">
-        <div className="atl-hero-art"><AtelierBottle name={pk(f.name)} code={creation.code} label={creation.label_name} tone={f.tone} isAr={isAr} /></div>
+        <div className="atl-hero-art">
+          <RitualCard name={pk(f.name)} code={creation.code} label={creation.label_name} steps={cardSteps} tone={f.tone} isAr={isAr} />
+        </div>
         <div className="atl-hero-copy">
           <p className="atl-kicker">{L.kicker} · <span dir="ltr">{creation.code}</span></p>
           <h1>{pk(f.name)}</h1>
           <p className="atl-alt" dir={isAr ? 'ltr' : 'rtl'}>{otherName}</p>
-          <p className="atl-story">{pk(f.story)}</p>
-          <dl className="atl-specs">
-            <div><dt>{L.conc}</dt><dd>{pk(f.concentration)} · {f.concentration.pct}%</dd></div>
-            <div><dt>{L.lon}</dt><dd>{pk(f.longevity)}</dd></div>
-            <div><dt>{L.sil}</dt><dd>{pk(f.sillage)}</dd></div>
-          </dl>
+          <p className="atl-story">{pk(creation.story)}</p>
+          {f.accords?.length > 0 && (
+            <p className="atl-char"><span>{L.character}</span>{f.accords.slice(0, 3).map((x) => pk(x)).join(' · ')}</p>
+          )}
           <div className="atl-actions">
+            <button type="button" className="tlink" onClick={saveStory} disabled={saving}>{saving ? L.saving : L.story}</button>
             <button type="button" className="tlink" onClick={share}>{copied ? L.copied : L.share}</button>
             <Link href="/atelier" className="tlink">{mine ? L.again : L.own}</Link>
           </div>
         </div>
       </section>
 
-      <section className="atl-formula">
-        <div className="atl-pyr">
-          {['top', 'heart', 'base'].map((tier) => (
-            <div key={tier} className="atl-tier">
-              <h3>{L[tier]}</h3>
-              <ul>
-                {f.pyramid[tier].map((n) => (
-                  <li key={n.key}><span>{pk(n)}</span><b dir="ltr">{n.pct}%</b><i style={{ width: `${Math.min(100, n.pct * 4)}%` }} aria-hidden="true" /></li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-        <div className="atl-acc">
-          <h3>{L.accords}</h3>
-          {f.accords.map((x) => (
-            <div key={x.key} className="atl-acc-row"><span>{pk(x)}</span><i aria-hidden="true"><em style={{ width: `${x.value}%` }} /></i></div>
-          ))}
-        </div>
-      </section>
-
-      <section className="atl-reserve" id="reserve">
-        {state === 'done' ? (
-          <div className="atl-done">
-            <h2>{L.done}</h2>
-            <p>{L.doneSub} <strong dir="ltr">{creation.code}</strong></p>
-            {gift && <p className="atl-gift"><span>{L.gift}</span>{gift}</p>}
-            {wa && <a className="btn btn-fill" href={`https://wa.me/${wa}?text=${chatText}`} target="_blank" rel="noreferrer">{L.chat}</a>}
-          </div>
-        ) : state === 'taken' && !mine ? (
-          <div className="atl-done">
-            <p>{L.taken}</p>
-            <Link href="/atelier" className="btn btn-fill">{L.own}</Link>
-          </div>
-        ) : (
-          <div className="atl-reserve-grid">
-            <div>
-              <h2>{L.reserve}</h2>
-              <p className="atl-reserve-sub">{L.reserveSub}</p>
-              {gift && <p className="atl-gift"><span>{L.gift}</span>{gift}</p>}
-            </div>
-            <form onSubmit={reserve} className="atl-form">
-              {sizes.length > 0 ? (
-                <div className="atl-sizes" role="radiogroup" aria-label={L.size}>
-                  {sizes.map(([sz, price]) => (
-                    <button type="button" role="radio" aria-checked={size === sz} key={sz} className={size === sz ? 'on' : ''} onClick={() => setSize(sz)}>
-                      <strong dir="ltr">{sz}ml</strong><span>{money(price)}</span>
-                    </button>
-                  ))}
+      {steps.length === 0 ? (
+        <section className="atl-done"><p>{L.empty}</p><Link href="/shop" className="btn btn-fill">{L.shop}</Link></section>
+      ) : (
+        <section className="atl-ritual" id="ritual">
+          <h2>{L.steps}</h2>
+          <ol className="atl-steps">
+            {steps.map((st, i) => (
+              <li key={st.product.id} className="atl-step">
+                <Link href={`/fragrance/${st.product.slug}`} className="atl-step-img">
+                  {st.product.image && <img src={st.product.image} alt={pname(st.product)} loading="lazy" />}
+                </Link>
+                <div className="atl-step-body">
+                  <p className="atl-step-k">{L.step} {i + 1} · {pk(st.title)}</p>
+                  <h3><Link href={`/fragrance/${st.product.slug}`}>{pname(st.product)}</Link></h3>
+                  <p className="atl-step-meta">{pk(st.product.category)} · <span dir="ltr">{st.product.variants?.[0]?.label || st.product.size || ''}</span> · {money(unit(st.product))}</p>
+                  <p className="atl-step-why"><b dir="ltr">{st.match}%</b> {L.match} · {pk(st.why)}</p>
+                  <p className="atl-step-how">{pk(st.how)}</p>
                 </div>
-              ) : <p className="atl-price-note">{L.price}</p>}
-              <label>{L.name}<input className="inp" required minLength={2} maxLength={100} value={form.name} onChange={set('name')} autoComplete="name" /></label>
-              <label>{L.phone}<input className="inp" required dir="ltr" inputMode="tel" placeholder="+971 50 000 0000" minLength={7} maxLength={20} value={form.phone} onChange={set('phone')} autoComplete="tel" /></label>
-              <label>{L.email}<input className="inp" type="email" dir="ltr" maxLength={150} value={form.email} onChange={set('email')} autoComplete="email" /></label>
-              <input className="ct-hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={set('website')} name="website" />
-              {error && <p className="ct-err">{error}</p>}
-              <button className="btn btn-fill btn-block" disabled={state === 'sending'}>{state === 'sending' ? L.sending : L.send}</button>
-            </form>
+              </li>
+            ))}
+          </ol>
+
+          <div className="atl-buy">
+            <div className="atl-buy-sum">
+              <span>{L.total}</span>
+              <p>
+                {off > 0 && <s>{money(full)}</s>}
+                <strong>{money(full - off)}</strong>
+              </p>
+              {off > 0 && <em>{L.save}</em>}
+            </div>
+            {gift && <p className="atl-gift"><span>{L.gift}</span>{gift}</p>}
+            <button type="button" className="btn btn-fill btn-block" onClick={addAll}>{inBag ? L.inBag : L.addAll}</button>
           </div>
-        )}
-      </section>
+        </section>
+      )}
+
+      {creation.matches?.length > 0 && (
+        <section className="atl-more">
+          <h2>{L.more}</h2>
+          <div className="atl-more-grid">
+            {creation.matches.map((m) => (
+              <article key={m.product.id} className="atl-more-card">
+                <Link href={`/fragrance/${m.product.slug}`} className="atl-more-img">
+                  {m.product.image && <img src={m.product.image} alt={pname(m.product)} loading="lazy" />}
+                  <span className="atl-more-pct" dir="ltr">{m.match}%</span>
+                </Link>
+                <h3><Link href={`/fragrance/${m.product.slug}`}>{pname(m.product)}</Link></h3>
+                <p className="atl-more-why">{pk(m.why)}</p>
+                <div className="atl-more-foot">
+                  <span>{money(unit(m.product))}</span>
+                  <button type="button" className="pc-add" onClick={() => addItem({ ...m.product, name: pname(m.product) }, 1, m.product.variants?.[0])}>{L.addOne}</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {creation.discovery && (
+        <section className="atl-disc">
+          <div>
+            <h2>{L.discT}</h2>
+            <p>{L.discP}</p>
+          </div>
+          <div className="atl-disc-act">
+            <span>{pname(creation.discovery)} · {money(unit(creation.discovery))}</span>
+            <button type="button" className="btn" onClick={() => addItem({ ...creation.discovery, name: pname(creation.discovery) }, 1, creation.discovery.variants?.[0])}>{L.addOne}</button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
