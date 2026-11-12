@@ -10,7 +10,7 @@ import BuyPanel from './BuyPanel';
 import HeroSlider from './HeroSlider';
 import { buildHeroSlides } from '@/lib/hero';
 import { stages, materials, journal, discoverPrompts } from '@/lib/data';
-import { PdHero, PdRow, PdIntro, PdNotes, PdCharacter, PdVideo, PdFaq, PdComplete, PdRelated, PdNext, PdStickyBar, useStickyBar } from './ProductPage';
+import { PdHero, PdRow, PdIntro, PdNotes, PdAsk, PdVideo, PdFaq, PdComplete, PdRelated, PdNext, PdStickyBar, useStickyBar } from './ProductPage';
 import { PdReviews } from './ProductReviews';
 import { ProductJournal } from './JournalViews';
 import { track } from '@/lib/track';
@@ -172,7 +172,7 @@ function EdpView({ product, next, products = [], journal = [] }) {
       <PdNotes notes={product.notes} items={product.note_items} />
       {!product.notes && <PdRow label={t.product.notes}><p>{t.product.notesPending}</p></PdRow>}
 
-      <PdCharacter spectrum={product.spectrum} wear={product.wear} />
+      <PdAsk product={product} />
       <PdVideo video={product.video} product={product} />
       <PdReviews product={product} />
       <PdFaq />

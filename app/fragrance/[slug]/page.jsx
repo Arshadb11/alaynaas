@@ -1,6 +1,7 @@
 import { FragranceView } from '@/components/StoreViews';
 import { getProduct, getProducts, getProductReviews, getStoreSettings, getJournal } from '@/lib/api';
 import { entriesForProduct } from '@/lib/related';
+import { productQa } from '@/lib/productQa';
 import { buildMeta, getLang, absUrl, ldJson, breadcrumbLd, SITE_URL } from '@/lib/seo';
 
 const isGenericSeo = (d) => !d || (String(d).length < 70 && /by alaynaa'?s parfums\.?$/i.test(String(d).trim()));
@@ -42,6 +43,7 @@ export default async function Page({ params }) {
   /* Structured data for Google: price, stock, delivery + return terms (from Admin > Settings),
      rating and written reviews (approved ones only), notes and fragrance family. */
   let jsonLd = null;
+  let faqLd = null;
   if (product) {
     const ar = (await getLang()) === 'ar';
     const st = (await getStoreSettings()) || {};
@@ -121,10 +123,13 @@ export default async function Page({ params }) {
       ...(sum?.count > 0 ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Number(sum.average).toFixed(1), reviewCount: sum.count, bestRating: 5, worstRating: 1 } } : {}),
       ...(written.length ? { review: written } : {}),
     };
+    const qa = productQa(product, ar ? 'ar' : 'en');
+    if (qa.length) faqLd = { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: ar ? 'ar' : 'en', mainEntity: qa.map((x) => ({ '@type': 'Question', name: x.q.replace(/[\u2068\u2069]/g, ''), acceptedAnswer: { '@type': 'Answer', text: x.a.replace(/[\u2068\u2069]/g, '') } })) };
   }
 
   return (
     <>
+      {faqLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(faqLd) }} />}
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />}
       {product && (
         <script

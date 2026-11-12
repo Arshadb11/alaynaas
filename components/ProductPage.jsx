@@ -9,6 +9,7 @@ import { galleryOf } from './Gallery';
 import { galleryAlts } from '@/lib/alt';
 import { ShopProductCard } from './ShopCatalogView';
 import { getProductReviews } from '@/lib/api';
+import { askHouse, productQa } from '@/lib/productQa';
 
 /* ───────── Gallery: thumb rail + framed stage, crossfade, swipe, zoom lightbox ───────── */
 export function PdGallery({ images, alt, alts }) {
@@ -347,6 +348,67 @@ export function PdNotes({ notes, items }) {
 }
 
 /* ───────── The Character: refined spectrum bars ───────── */
+/* ───────── Ask the house + Your questions: replaces the old character sliders ───────── */
+export function PdAsk({ product }) {
+  const { lang, money } = useApp();
+  const ar = lang === 'ar';
+  const name = ar ? `\u2068${product.name_ar || product.name}\u2069` : product.name;
+  const text = askHouse(product, lang);
+  const qa = productQa(product, lang, money);
+  const [open, setOpen] = useState(false);
+  const [shown, setShown] = useState('');
+  useEffect(() => { setOpen(false); setShown(''); }, [lang, product.id]);
+  useEffect(() => {
+    if (!open || !text) return undefined;
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { setShown(text); return undefined; }
+    const words = text.split(' ');
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      setShown(words.slice(0, i).join(' '));
+      if (i >= words.length) clearInterval(id);
+    }, 55);
+    return () => clearInterval(id);
+  }, [open, text]);
+  if (!text && !qa.length) return null;
+  const done = shown.length >= text.length;
+  return (
+    <section className="pd-sec pd-ask">
+      <div className="pd-wrap pd-ask-grid">
+        {text && (
+          <div className="pd-ask-box">
+            <p className="pd-kicker">{ar ? 'اسأل الدار' : 'Ask the house'}</p>
+            <h2 className="pd-h2">{ar ? <>كيف ستكون رائحتي<br />مع «{name}»؟</> : <>How will I smell<br />wearing {name}?</>}</h2>
+            <p className="pd-ask-intro">{ar ? 'بلمسة واحدة نصفه لك بكلمات بسيطة: اللحظة، لا قائمة المكونات.' : 'One tap, and we describe it in plain words: the moment, not the list of notes.'}</p>
+            {!open ? (
+              <button type="button" className="pd-ask-btn" onClick={() => setOpen(true)}>
+                {ar ? 'أخبرني كيف ستكون رائحتي' : "Tell me how I'll smell"} <span aria-hidden="true">{ar ? '←' : '→'}</span>
+              </button>
+            ) : (
+              <p className="pd-ask-out" aria-live="polite">{shown}{!done && <i className="pd-ask-caret" aria-hidden="true" />}</p>
+            )}
+          </div>
+        )}
+        {qa.length > 0 && (
+          <div className="pd-ask-qa">
+            <p className="pd-kicker">{ar ? 'أسئلتك' : 'Your questions'}</p>
+            <h2 className="pd-h2">{ar ? `أسئلتك عن «${name}»` : `Your questions about ${name}`}</h2>
+            <div className="pd-faq-list">
+              {qa.map((f, i) => (
+                <details key={i} className="pd-faq-item">
+                  <summary>{f.q}</summary>
+                  <p>{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function PdCharacter({ spectrum, wear }) {
   const { t, L } = useApp();
   const [ref, seen] = useInView();
