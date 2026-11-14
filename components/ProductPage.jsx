@@ -379,7 +379,7 @@ export function PdAsk({ product }) {
         {text && (
           <div className="pd-ask-box">
             <p className="pd-kicker">{ar ? 'اسأل الدار' : 'Ask the house'}</p>
-            <h2 className="pd-h2">{ar ? <>كيف ستكون رائحتي<br />مع «{name}»؟</> : <>How will I smell<br />wearing {name}?</>}</h2>
+            <h2 className="pd-h2">{ar ? `كيف ستكون رائحتي مع «${name}»؟` : `How will I smell wearing ${name}?`}</h2>
             <p className="pd-ask-intro">{ar ? 'بلمسة واحدة نصفه لك بكلمات بسيطة: اللحظة، لا قائمة المكونات.' : 'One tap, and we describe it in plain words: the moment, not the list of notes.'}</p>
             {!open ? (
               <button type="button" className="pd-ask-btn" onClick={() => setOpen(true)}>

@@ -12852,11 +12852,13 @@ html[dir=rtl] .jn-more svg,html[dir=rtl] .jn-sign svg{transform:scaleX(-1)}
 .pg-frame{background:#fcfcfa;width:min(100%,540px);box-shadow:none;border:1px solid #dcdcda}
 .pg-frame::before,.pg-frame::after{display:none}
 .pg-slide img{object-fit:contain;padding:7%;mix-blend-mode:multiply}
+.pg-slide:not(:first-child) img{object-fit:cover;padding:0;mix-blend-mode:normal}
 .pg-zoom,.pg-nav{background:rgba(252, 252, 250, .92);border-color:#cfcfcd;color:#15231b;backdrop-filter:none}
 .pg-zoom:hover,.pg-nav:hover{background:#15231b;color:#f9f9f7;border-color:#15231b}
 .pg-count{color:#55635a;text-shadow:none}
 .pg-rail button{background:#fcfcfa;border-color:#dcdcda;opacity:.7}
 .pg-rail button img{object-fit:contain;padding:4px}
+.pg-rail button:not(:first-child) img{object-fit:cover;padding:0}
 .pg-rail button.on{border-color:#15231b}
 .pg-lb .pg-nav,.pg-lb .pg-lb-x{background:rgba(21,35,27,.5);color:#f9f9f7;border-color:rgba(249, 249, 247, .5)}
 .pg-count.lb{color:#f9f9f7}
@@ -13647,23 +13649,22 @@ body:has(.sticky-buy) .wa-fab { bottom: 92px; }
 
 /* ===================== Ask the house + Your questions (product page) ===================== */
 .pd-ask { background: var(--pd-sand) }
-.pd-ask-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: clamp(28px, 6vw, 96px); align-items: start }
-.pd-ask-box { position: sticky; top: 110px; background: #15231b; color: #f4f1ea; padding: clamp(26px, 4vw, 44px) }
+.pd-ask-grid { display: grid; grid-template-columns: 1fr; gap: clamp(36px, 5vw, 64px) }
+.pd-ask-box { width: 100%; background: #15231b; color: #f4f1ea; padding: clamp(28px, 4.5vw, 52px) }
 .pd-ask-box .pd-kicker { color: #c9a96a }
-.pd-ask-box .pd-h2 { color: #f4f1ea; margin: 10px 0 14px; font-size: clamp(26px, 2.6vw, 40px); line-height: 1.08 }
-.pd-ask-intro { margin: 0 0 26px; font-size: 14.5px; line-height: 1.6; color: rgba(244, 241, 234, .72) }
+.pd-ask-box .pd-h2 { color: #f4f1ea; margin: 10px 0 14px; font-size: clamp(26px, 2.6vw, 40px); line-height: 1.12 }
+.pd-ask-intro { margin: 0 0 26px; max-width: 68ch; font-size: 14.5px; line-height: 1.6; color: rgba(244, 241, 234, .72) }
 .pd-ask-btn { display: inline-flex; align-items: center; gap: 12px; background: #c9a96a; color: #15231b; border: 1px solid #c9a96a; padding: 14px 22px; font: inherit; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; transition: background .25s, gap .25s }
 .pd-ask-btn:hover { background: #d8bb80; gap: 18px }
 .pd-ask-btn span { font-size: 16px; letter-spacing: 0 }
-.pd-ask-out { margin: 0; min-height: 7.5em; font-size: clamp(17px, 1.6vw, 20px); font-weight: 300; line-height: 1.65; color: #f4f1ea; border-top: 1px solid rgba(201, 169, 106, .35); padding-top: 22px }
+.pd-ask-out { margin: 0; max-width: 74ch; font-size: clamp(17px, 1.6vw, 20px); font-weight: 300; line-height: 1.65; color: #f4f1ea; border-top: 1px solid rgba(201, 169, 106, .35); padding-top: 22px }
 .pd-ask-caret { display: inline-block; width: 2px; height: 1.05em; margin-inline-start: 3px; vertical-align: -.15em; background: #c9a96a; animation: pdCaret .8s steps(1) infinite }
 @keyframes pdCaret { 50% { opacity: 0 } }
+.pd-ask-qa { width: 100% }
 .pd-ask-qa .pd-h2 { margin: 10px 0 0 }
 .pd-ask-qa .pd-faq-list { max-width: none }
 .pd-ask-qa .pd-faq-item p { margin: 0 0 20px; font-size: 14.5px; line-height: 1.7; color: #4a544d }
 html[dir=rtl] .pd-ask-box .pd-kicker, html[dir=rtl] .pd-ask-btn { letter-spacing: 0 }
 @media (max-width: 900px) {
-  .pd-ask-grid { grid-template-columns: 1fr }
-  .pd-ask-box { position: static }
   .pd-ask-btn { width: 100%; justify-content: center }
 }
